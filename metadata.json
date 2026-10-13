@@ -1,0 +1,8 @@
+{
+  "name": "VISA Digital Sertãozinho-SP - Verificação LTA",
+  "description": "Sistema oficial de triagem e verificação da necessidade de Laudo Técnico de Avaliação (LTA), baseado na Portaria CVS 01/2026 (publicação de 13/05/2026), com emissão de comprovante digital da Prefeitura de Sertãozinho-SP.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
