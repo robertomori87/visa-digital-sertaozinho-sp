@@ -525,11 +525,11 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
                                 <span>{isShown ? 'Ocultar' : 'Ver'} atividades excluídas ({excItems.length})</span>
                               </button>
                               {isShown && (
-                                <div className="bg-amber-50/80 p-2 rounded border border-amber-200 text-xs text-amber-900 mt-1 space-y-1">
-                                  <span className="font-bold block text-amber-800">
-                                    Não compreende (atividades excluídas deste enquadramento):
+                                <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs text-slate-700 mt-1 space-y-1">
+                                  <span className="font-semibold block text-slate-500 text-[11px]">
+                                    Atividades não compreendidas (excluídas deste enquadramento):
                                   </span>
-                                  <ul className="list-disc list-inside space-y-0.5 text-slate-700 pl-1">
+                                  <ul className="list-disc list-inside space-y-0.5 text-slate-600 pl-1">
                                     {excItems.map((item, i) => (
                                       <li key={i} className="leading-snug">{item}</li>
                                     ))}
@@ -598,11 +598,11 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
                                 <span>{isShown ? 'Ocultar' : 'Ver'} atividades excluídas ({excItems.length})</span>
                               </button>
                               {isShown && (
-                                <div className="bg-amber-50/80 p-2 rounded border border-amber-200 text-xs text-amber-900 mt-1 space-y-1">
-                                  <span className="font-bold block text-amber-800">
-                                    Não compreende (atividades excluídas deste enquadramento):
+                                <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs text-slate-700 mt-1 space-y-1">
+                                  <span className="font-semibold block text-slate-500 text-[11px]">
+                                    Atividades não compreendidas (excluídas deste enquadramento):
                                   </span>
-                                  <ul className="list-disc list-inside space-y-0.5 text-slate-700 pl-1">
+                                  <ul className="list-disc list-inside space-y-0.5 text-slate-600 pl-1">
                                     {excItems.map((item, i) => (
                                       <li key={i} className="leading-snug">{item}</li>
                                     ))}

@@ -377,22 +377,43 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
       const actNeedsLta = isActivityLtaRequired(act);
       const excItems = formatNaoCompreendeItems(act.naoCompreende);
 
-      // Estimate height needed for this activity card
+      // 1. Prepare Title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      const descLines = doc.splitTextToSize(`CNAE ${act.cnae} - ${act.descricaoCnae}`, contentWidth - 45);
+      const titleHeight = Math.max(descLines.length * 3.6, 5);
+
+      // 2. Prepare Compreensão Oficial (Destaque Principal)
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
-      const descLines = doc.splitTextToSize(`CNAE ${act.cnae} - ${act.descricaoCnae}`, contentWidth - 45);
-      const compLines = doc.splitTextToSize(act.compreensao || '-', contentWidth - 10);
-      const excCount = excItems.length;
+      const compInnerWidth = contentWidth - 14;
+      const compLines = doc.splitTextToSize(act.compreensao || '-', compInnerWidth);
+      const compBoxHeight = 5 + compLines.length * 3.2 + 2;
 
+      // 3. Prepare Exceções / Não Compreende (Secundário, sutil e com quebra de linha rigorosa)
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      const excInnerWidth = contentWidth - 14;
+      const preparedExcItems: string[][] = excItems.map((item) =>
+        doc.splitTextToSize(`• ${item}`, excInnerWidth - 4)
+      );
+      const totalExcLines = preparedExcItems.reduce((acc, lines) => acc + lines.length, 0);
+      const excBoxHeight =
+        excItems.length > 0
+          ? 4.5 + totalExcLines * 2.8 + (excItems.length > 1 ? (excItems.length - 1) * 0.6 : 0) + 2
+          : 0;
+
+      // Card Total Height
       const actCardHeight =
-        12 +
-        descLines.length * 3.5 +
-        compLines.length * 3.2 +
-        (excCount > 0 ? 8 + excCount * 3.2 : 0);
+        4 + // top padding
+        titleHeight + 2.5 +
+        compBoxHeight + // caixa destacada de compreensão
+        (excItems.length > 0 ? 2 + excBoxHeight : 0) + // caixa secundária neutra de exceções
+        3; // bottom padding
 
       ensureSpace(actCardHeight + 3);
 
-      // Draw Activity Card
+      // Draw Activity Card Border & Background
       if (actNeedsLta) {
         doc.setFillColor(255, 245, 245);
         doc.setDrawColor(244, 63, 94);
@@ -427,41 +448,52 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
       doc.setFontSize(8.5);
       doc.setTextColor(15, 23, 42);
       doc.text(descLines, marginX + 4, actY);
-      actY += descLines.length * 3.5 + 2.5;
+      actY += titleHeight + 2.5;
 
-      // Compreensão
+      // 1. Bloco de Compreensão Oficial (Destaque Principal com fundo branco e contraste nítido)
+      doc.setFillColor(255, 255, 255);
+      if (actNeedsLta) {
+        doc.setDrawColor(254, 205, 211); // rose-200
+      } else {
+        doc.setDrawColor(167, 243, 208); // emerald-200
+      }
+      doc.setLineWidth(0.3);
+      doc.roundedRect(marginX + 3.5, actY, contentWidth - 7, compBoxHeight, 1, 1, 'FD');
+
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.5);
-      doc.setTextColor(71, 85, 105);
-      doc.text('COMPREENSÃO OFICIAL DA ATIVIDADE (CVS 01):', marginX + 4, actY);
-      actY += 3;
+      doc.setFontSize(6.8);
+      if (actNeedsLta) {
+        doc.setTextColor(159, 18, 57); // rose-800
+      } else {
+        doc.setTextColor(6, 95, 70); // emerald-800
+      }
+      doc.text('COMPREENSÃO OFICIAL DA ATIVIDADE (CVS 01):', marginX + 6, actY + 3.5);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
       doc.setTextColor(15, 23, 42);
-      doc.text(compLines, marginX + 4, actY);
-      actY += compLines.length * 3.2 + 2;
+      doc.text(compLines, marginX + 6, actY + 6.8);
+      actY += compBoxHeight + 2;
 
-      // Exceções ("Não compreende")
+      // 2. Bloco "Não compreende" (Secundário, tom neutro discreto, sem amarelo forte e com quebra de linhas perfeita)
       if (excItems.length > 0) {
-        doc.setFillColor(254, 243, 199);
-        doc.setDrawColor(245, 158, 11);
+        doc.setFillColor(248, 250, 252); // slate-50 neutro
+        doc.setDrawColor(226, 232, 240); // slate-200
         doc.setLineWidth(0.2);
-        const excBoxHeight = 4 + excItems.length * 3.2;
-        doc.roundedRect(marginX + 4, actY, contentWidth - 8, excBoxHeight, 1, 1, 'FD');
+        doc.roundedRect(marginX + 3.5, actY, contentWidth - 7, excBoxHeight, 1, 1, 'FD');
 
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6.5);
-        doc.setTextColor(146, 64, 14);
-        doc.text('Não compreende (atividades excluídas deste enquadramento):', marginX + 6, actY + 3);
+        doc.setFontSize(6.2);
+        doc.setTextColor(100, 116, 139); // slate-500 neutro
+        doc.text('Atividades não compreendidas (excluídas deste enquadramento):', marginX + 6, actY + 3.2);
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.setTextColor(78, 42, 6);
-        let excItemY = actY + 6;
-        for (const item of excItems) {
-          doc.text(`• ${item}`, marginX + 6, excItemY);
-          excItemY += 3.2;
+        doc.setFontSize(6.5);
+        doc.setTextColor(51, 65, 85); // slate-700
+        let currentExcY = actY + 6.2;
+        for (const lines of preparedExcItems) {
+          doc.text(lines, marginX + 6, currentExcY);
+          currentExcY += lines.length * 2.8 + 0.6;
         }
         actY += excBoxHeight + 2;
       }
