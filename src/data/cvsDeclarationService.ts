@@ -57,17 +57,22 @@ export function toggleCompreensao(
   declared: DeclaredCnae,
   compreensao: SelectedCompreensao
 ): DeclaredCnae | null {
-  const isSelected = declared.compreensoesSelecionadas.some(
-    (c) => c.compreensao === compreensao.compreensao
-  );
+  const matchesComp = (c: SelectedCompreensao) => {
+    if (c.cvsRecordId !== undefined && compreensao.cvsRecordId !== undefined) {
+      return String(c.cvsRecordId) === String(compreensao.cvsRecordId);
+    }
+    return c.compreensao.trim() === compreensao.compreensao.trim();
+  };
+
+  const isSelected = declared.compreensoesSelecionadas.some(matchesComp);
 
   let novasSelecionadas: SelectedCompreensao[];
 
   if (isSelected) {
     novasSelecionadas = declared.compreensoesSelecionadas.filter(
-      (c) => c.compreensao !== compreensao.compreensao
+      (c) => !matchesComp(c)
     );
-    // Se não há mais nenhuma selecionada, remove o CNAE da lista
+    // Se não há mais nenhuma selecionada, remove o CNAE da lista (retorna null)
     if (novasSelecionadas.length === 0) {
       return null;
     }

@@ -240,6 +240,21 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
     });
   };
 
+  // Expande/recolhe as opções de compreensões de um CNAE já declarado nos resultados de busca
+  const [collapsedDeclaredInSearch, setCollapsedDeclaredInSearch] = useState<Set<string>>(new Set());
+
+  const toggleDeclaredInSearch = (cnaeDigitos: string) => {
+    setCollapsedDeclaredInSearch((prev) => {
+      const next = new Set(prev);
+      if (next.has(cnaeDigitos)) {
+        next.delete(cnaeDigitos);
+      } else {
+        next.add(cnaeDigitos);
+      }
+      return next;
+    });
+  };
+
   // Helper: calcula o status de LTA de um CNAE declarado
   const getCnaeLtaStatus = (declared: DeclaredCnae): { label: string; variant: 'exige' | 'nao_exige' | 'fora_cvs' | 'pode_exigir' } => {
     if (declared.naoConstaCvs) {
@@ -596,12 +611,6 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
                   {declaredCnaes.filter((d) => d.status === 'pending').length} pendente(s)
                 </button>
               )}
-              {consultaCompleta && (
-                <span className="text-[11px] font-bold uppercase px-2.5 py-1 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-                  Todas verificadas
-                </span>
-              )}
               <button
                 type="button"
                 onClick={onClearActivities}
@@ -626,105 +635,176 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
                 pode_exigir: 'bg-amber-50 text-amber-700 border-amber-200',
                 fora_cvs: 'bg-slate-50 text-slate-600 border-slate-200',
               }[ltaStatus.variant];
+
               return (
                 <div
                   key={declared.cnaeDigitos}
-                  className={`rounded-lg border ${
+                  className={`rounded-xl border transition-all ${
                     declared.status === 'confirmed'
-                      ? 'border-emerald-200 bg-emerald-50/40'
+                      ? 'border-emerald-300 bg-emerald-50/30'
                       : declared.status === 'none_applies'
-                      ? 'border-slate-200 bg-slate-50'
-                      : 'border-amber-200 bg-amber-50/40'
+                      ? 'border-slate-300 bg-slate-50'
+                      : 'border-amber-300 bg-amber-50/40'
                   }`}
                 >
                   {/* Header row */}
-                  <div className="flex items-center gap-2 px-3 py-2">
+                  <div className="flex items-center gap-2 px-3.5 py-2.5 flex-wrap sm:flex-nowrap">
                     <span className={`w-2 h-2 rounded-full shrink-0 ${
                       declared.status === 'confirmed' ? 'bg-emerald-500' :
-                      declared.status === 'none_applies' ? 'bg-slate-400' :
+                      declared.status === 'none_applies' ? 'bg-slate-500' :
                       'bg-amber-500 animate-pulse'
                     }`}></span>
                     <span className="font-mono font-bold text-[11px] text-slate-800 shrink-0">
                       {declared.cnae}
                     </span>
-                    <span className="text-[11px] font-semibold text-slate-700 truncate flex-1 min-w-0">
+                    <span className="text-[11px] font-semibold text-slate-800 truncate flex-1 min-w-0">
                       {declared.descricaoCnae}
                     </span>
                     {/* Tag LTA */}
                     <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border shrink-0 ${ltaBadgeClass}`}>
                       {ltaStatus.label}
                     </span>
-                    {/* Status */}
-                    {declared.naoConstaCvs ? null : declared.status === 'none_applies' ? (
-                      <span className="text-[10px] font-bold text-slate-600 shrink-0">Sem compreensão</span>
+                    {/* Choice Badge */}
+                    {declared.naoConstaCvs ? (
+                      <span className="text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded shrink-0">
+                        Fora da CVS 01
+                      </span>
+                    ) : declared.status === 'none_applies' ? (
+                      <span className="text-[10px] font-bold text-slate-700 bg-slate-200/90 border border-slate-300 px-2 py-0.5 rounded flex items-center gap-1 shrink-0">
+                        <span className="material-symbols-outlined text-[13px] text-slate-600">block</span>
+                        Nenhuma compreensão se aplica
+                      </span>
                     ) : declared.status === 'confirmed' ? (
-                      <span className="text-[10px] font-bold text-emerald-700 shrink-0">
-                        {declared.compreensoesSelecionadas.length} sel.
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded flex items-center gap-1 shrink-0">
+                        <span className="material-symbols-outlined text-[13px] text-emerald-600">check_circle</span>
+                        {declared.compreensoesSelecionadas.length} {declared.compreensoesSelecionadas.length === 1 ? 'compreensão' : 'compreensões'}
                       </span>
                     ) : (
                       <span className="text-[10px] font-bold text-amber-700 shrink-0">Pendente</span>
                     )}
-                    {/* Expand button */}
-                    {!declared.naoConstaCvs && declared.compreensoesDisponiveis.length > 0 && (
+
+                    {/* Expand/Collapse details button */}
+                    {!declared.naoConstaCvs && (
                       <button
                         type="button"
                         onClick={() => toggleSummaryExpand(declared.cnaeDigitos)}
-                        className="text-slate-400 hover:text-indigo-600 p-0.5 cursor-pointer shrink-0"
-                        title={isExpanded ? 'Recolher' : 'Expandir'}
+                        className="text-slate-500 hover:text-indigo-600 px-1.5 py-0.5 rounded border border-slate-200 hover:border-indigo-200 bg-white cursor-pointer shrink-0 flex items-center gap-0.5 text-[10px] font-bold transition-colors"
+                        title={isExpanded ? 'Recolher detalhes' : 'Ver detalhes da seleção'}
                       >
-                        <span className="material-symbols-outlined text-[16px]">{isExpanded ? 'expand_less' : 'expand_more'}</span>
+                        <span>{isExpanded ? 'Recolher' : 'Detalhes'}</span>
+                        <span className="material-symbols-outlined text-[15px]">
+                          {isExpanded ? 'expand_less' : 'expand_more'}
+                        </span>
                       </button>
                     )}
+
+                    {/* Remove CNAE button */}
                     <button
                       type="button"
                       onClick={() => onRemoveDeclaredCnae(declared.cnaeDigitos)}
-                      className="text-slate-400 hover:text-rose-600 p-0.5 cursor-pointer shrink-0"
-                      title="Remover CNAE"
+                      className="text-slate-400 hover:text-rose-600 p-1 hover:bg-rose-50 rounded cursor-pointer shrink-0 transition-colors"
+                      title="Remover atividade"
                     >
-                      <span className="material-symbols-outlined text-[15px]">close</span>
+                      <span className="material-symbols-outlined text-[16px]">close</span>
                     </button>
                   </div>
 
                   {/* Expanded content */}
                   {isExpanded && !declared.naoConstaCvs && (
-                    <div className="px-3 pb-3 pt-1 border-t border-slate-200/60 space-y-2">
-                      {declared.compreensoesDisponiveis.map((comp) => {
-                        const isSelected = declared.compreensoesSelecionadas.some(
-                          (s) => s.cvsRecordId === comp.cvsRecordId
-                        );
-                        return (
-                          <div key={comp.cvsRecordId} className="space-y-1">
-                            <div className="flex items-start gap-1.5">
-                              <span className={`w-1.5 h-1.5 rounded-full mt-1 shrink-0 ${isSelected ? 'bg-indigo-500' : 'bg-slate-300'}`}></span>
-                              <span className={`text-[11px] leading-relaxed ${isSelected ? 'text-slate-800 font-medium' : 'text-slate-500'}`}>
-                                {comp.compreensao}
+                    <div className="px-3.5 pb-3 pt-2 border-t border-slate-200/70 space-y-2">
+                      {/* Caso 1: Nenhuma compreensão se aplica */}
+                      {declared.status === 'none_applies' && (
+                        <div className="bg-slate-100/90 border border-slate-300 rounded-lg p-2.5 flex items-start justify-between gap-2.5">
+                          <div className="flex items-start gap-2">
+                            <span className="material-symbols-outlined text-[18px] text-slate-600 shrink-0 mt-0.5">check_circle</span>
+                            <div>
+                              <span className="text-xs font-bold text-slate-800 block">
+                                Declaração: Nenhuma compreensão da Portaria CVS 01 se aplica
                               </span>
-                              {/* Tag LTA por compreensão */}
-                              <span className={`text-[8px] font-bold uppercase tracking-wide px-1 py-0.5 rounded border shrink-0 mt-0.5 ${
-                                checkHasDoc52(comp.documentosInspecao)
-                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              }`}>
-                                {checkHasDoc52(comp.documentosInspecao) ? 'Exige LTA' : 'Não exige'}
+                              <span className="text-[11px] text-slate-600 mt-0.5 block leading-relaxed">
+                                O requerente declarou que a atividade exercida não se enquadra nas compreensões sanitárias da Portaria CVS 01/2024. Dispensada de avaliação prévia de projeto (LTA) para este CNAE.
                               </span>
                             </div>
-                            {/* Não compreende — colapsado por padrão */}
-                            {comp.naoCompreende && (
-                              <details className="ml-3.5">
-                                <summary className="text-[10px] text-slate-400 cursor-pointer hover:text-slate-600 list-none">
-                                  <span className="inline-flex items-center gap-0.5">
-                                    <span className="material-symbols-outlined text-[12px]">info</span>
-                                    Não compreende
-                                  </span>
-                                </summary>
-                                <p className="text-[10px] text-slate-500 mt-1 leading-relaxed whitespace-pre-line">
-                                  {comp.naoCompreende}
-                                </p>
-                              </details>
-                            )}
                           </div>
-                        );
-                      })}
+                          <button
+                            type="button"
+                            onClick={() => onRemoveDeclaredCnae(declared.cnaeDigitos)}
+                            className="text-xs text-rose-600 hover:text-rose-800 font-bold shrink-0 cursor-pointer underline"
+                            title="Remover esta atividade"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Caso 2: Compreensões confirmadas — EXIBE SOMENTE A(S) COMPREENSÃO(ÕES) ESCOLHIDA(S) */}
+                      {declared.status === 'confirmed' && (
+                        <div className="space-y-2">
+                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            Compreensão sanitária selecionada ({declared.compreensoesSelecionadas.length}):
+                          </div>
+                          {declared.compreensoesSelecionadas.map((comp) => {
+                            const hasLta = checkHasDoc52(comp.documentosInspecao);
+                            return (
+                              <div
+                                key={comp.cvsRecordId}
+                                className={`p-2.5 rounded-lg border flex items-start justify-between gap-2.5 ${
+                                  hasLta
+                                    ? 'bg-rose-50/50 border-rose-300'
+                                    : 'bg-emerald-50/50 border-emerald-300'
+                                }`}
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/90 px-1.5 py-0.2 rounded">
+                                      <span className="material-symbols-outlined text-[12px]">check</span>
+                                      Compreensão Selecionada
+                                    </span>
+                                    <span
+                                      className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded border ml-auto ${
+                                        hasLta
+                                          ? 'bg-rose-100 text-rose-800 border-rose-200'
+                                          : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                      }`}
+                                    >
+                                      {hasLta ? 'Exige LTA' : 'Não exige LTA'}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs font-semibold text-slate-900 leading-relaxed">
+                                    {comp.compreensao}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500 flex-wrap">
+                                    <span>Risco: <strong className="text-slate-700">{comp.risco}</strong></span>
+                                  </div>
+                                  {comp.naoCompreende && (
+                                    <details className="mt-1.5">
+                                      <summary className="text-[10px] text-slate-400 cursor-pointer hover:text-slate-600 list-none inline-flex items-center gap-0.5">
+                                        <span className="material-symbols-outlined text-[12px]">info</span>
+                                        Não compreende
+                                      </summary>
+                                      <p className="text-[10px] text-slate-500 mt-1 leading-relaxed whitespace-pre-line bg-white/70 p-2 rounded border border-slate-200">
+                                        {comp.naoCompreende}
+                                      </p>
+                                    </details>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    onUpdateDeclaredCnae(declared.cnaeDigitos, (d) =>
+                                      toggleCompreensao(d, comp)
+                                    )
+                                  }
+                                  className="shrink-0 p-1 text-slate-400 hover:text-rose-600 cursor-pointer"
+                                  title="Remover esta compreensão"
+                                >
+                                  <span className="material-symbols-outlined text-[17px]">delete</span>
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -958,8 +1038,8 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
                               <button
                                 type="button"
                                 onClick={() => onRemoveDeclaredCnae(result.cnaeDigitos)}
-                                className="shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 border border-slate-200"
-                                title="Remover atividade"
+                                className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white border border-rose-300 shadow-xs"
+                                title="Remover atividade do estabelecimento"
                               >
                                 Remover
                               </button>
@@ -967,14 +1047,18 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
                               // CNAE na CVS 01: botão para verificar as compreensões antes de incluir
                               (() => {
                                 const isExpanded = expandedSelectors.has(result.cnaeDigitos);
-                                if (isExpanded) return null;
+                                if (isExpanded) {
+                                  // Quando expandido, oculta o botão superior para não duplicar com o Recolher das compreensões
+                                  return null;
+                                }
                                 return (
                                   <button
                                     type="button"
                                     onClick={() => toggleSelectorExpand(result.cnaeDigitos)}
-                                    className="shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700"
+                                    className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs"
                                     title="Verificar as compreensões sanitárias aplicáveis antes de incluir"
                                   >
+                                    <span className="material-symbols-outlined text-[15px]">expand_more</span>
                                     Verificar compreensão
                                   </button>
                                 );
@@ -984,10 +1068,10 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
                               <button
                                 type="button"
                                 onClick={() => handleAddDeclaredFromIntegrated(result)}
-                                className="shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer bg-emerald-600 text-white hover:bg-emerald-700"
-                                title="Incluir atividade"
+                                className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs"
+                                title="Incluir esta atividade"
                               >
-                                Incluir atividade
+                                Incluir
                               </button>
                             )}
                           </div>
@@ -998,15 +1082,17 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
                             return (
                               <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
                                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+                                  <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">
                                     Compreensões sanitárias aplicáveis ({compreensoes.length})
                                   </span>
                                   <button
                                     type="button"
                                     onClick={() => toggleSelectorExpand(result.cnaeDigitos)}
-                                    className="text-[11px] text-slate-400 hover:text-slate-600 font-medium cursor-pointer shrink-0"
+                                    className="px-2 py-0.5 rounded text-[11px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-300 cursor-pointer shrink-0 flex items-center gap-0.5"
+                                    title="Recolher compreensões"
                                   >
-                                    Cancelar
+                                    <span className="material-symbols-outlined text-[14px]">expand_less</span>
+                                    Recolher
                                   </button>
                                 </div>
                                 <p className="text-[10px] text-slate-400 italic mb-1.5">
@@ -1019,7 +1105,7 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
                                     return (
                                       <div
                                         key={recordKey}
-                                        className="border border-slate-200 bg-white rounded-lg p-2 transition-all hover:border-slate-300"
+                                        className="border border-slate-200 bg-white rounded-lg p-2.5 transition-all hover:border-slate-300"
                                       >
                                         <div className="flex items-start gap-2">
                                           <div className="flex-1 min-w-0">
@@ -1042,8 +1128,8 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
                                           <button
                                             type="button"
                                             onClick={() => handleIncludeWithCompreensao(result, comp.cvsRecordId!)}
-                                            className="shrink-0 px-2.5 py-1 rounded-md text-[10px] font-bold transition-colors cursor-pointer bg-emerald-600 text-white hover:bg-emerald-700"
-                                            title="Incluir atividade com esta compreensão"
+                                            className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs"
+                                            title="Incluir esta atividade"
                                           >
                                             Incluir
                                           </button>
@@ -1065,18 +1151,21 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
                                 </div>
 
                                 {/* Opção "Nenhuma compreensão se aplica" com botão de incluir */}
-                                <div className="border border-slate-200 bg-white rounded-lg p-2">
+                                <div className="border border-slate-200 bg-white rounded-lg p-2.5">
                                   <div className="flex items-start gap-2">
                                     <div className="flex-1 min-w-0">
-                                      <span className="text-xs font-medium text-slate-700">
+                                      <span className="text-xs font-medium text-slate-700 block">
                                         Nenhuma das compreensões acima se aplica à atividade efetivamente exercida
+                                      </span>
+                                      <span className="text-[10px] text-slate-500 block mt-0.5">
+                                        Dispensada de LTA para este CNAE perante a Vigilância Sanitária Municipal.
                                       </span>
                                     </div>
                                     <button
                                       type="button"
                                       onClick={() => handleIncludeNoneApplies(result)}
-                                      className="shrink-0 px-2.5 py-1 rounded-md text-[10px] font-bold transition-colors cursor-pointer bg-slate-600 text-white hover:bg-slate-700"
-                                      title="Incluir atividade sem nenhuma compreensão aplicável"
+                                      className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs"
+                                      title="Incluir esta atividade"
                                     >
                                       Incluir
                                     </button>
@@ -1086,169 +1175,216 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
                             );
                           })()}
 
-                          {/* Compreensões sanitárias — exibidas inline quando o CNAE foi selecionado */}
-                          {alreadyDeclared && declared && (
-                            <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
-                              {declared.naoConstaCvs ? (
-                                <div className="rounded-lg p-3 text-xs bg-emerald-50 border border-emerald-200">
-                                  <p className="mb-1.5 text-slate-700">
-                                    Este CNAE <strong>não foi encontrado</strong> na tabela de compreensões sanitárias da Portaria CVS 01/2024.
-                                  </p>
-                                  <p className="text-slate-600">
-                                    A ausência de registro <strong>não significa dispensa automática</strong> de licenciamento sanitário.
-                                  </p>
-                                  <div className="mt-2 flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                    <span className="text-[11px] font-bold text-emerald-700">Atividade confirmada</span>
+                          {/* Compreensões sanitárias — exibidas quando o CNAE foi selecionado */}
+                          {alreadyDeclared && declared && (() => {
+                            const isDeclaredCollapsed = collapsedDeclaredInSearch.has(declared.cnaeDigitos);
+                            return (
+                              <div className="mt-3 pt-3 border-t border-slate-200 space-y-2.5">
+                                {declared.naoConstaCvs ? (
+                                  <div className="rounded-lg p-3 text-xs bg-emerald-50 border border-emerald-200">
+                                    <p className="mb-1 text-slate-700">
+                                      Este CNAE <strong>não consta</strong> no Anexo I da Portaria CVS 01/2024.
+                                    </p>
+                                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                      Atividade confirmada (Dispensada de LTA prévio)
+                                    </div>
                                   </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
-                                    Compreensões sanitárias aplicáveis ({declared.compreensoesDisponiveis.length})
-                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">
+                                          Compreensões sanitárias ({declared.compreensoesDisponiveis.length})
+                                        </span>
+                                        {declared.status === 'confirmed' && (
+                                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-1.5 py-0.2 rounded">
+                                            {declared.compreensoesSelecionadas.length} selecionada(s)
+                                          </span>
+                                        )}
+                                        {declared.status === 'none_applies' && (
+                                          <span className="text-[10px] font-bold text-slate-700 bg-slate-200 border border-slate-300 px-1.5 py-0.2 rounded">
+                                            Nenhuma aplicável
+                                          </span>
+                                        )}
+                                      </div>
+                                      {/* Botão de colapsar / expandir o rol de compreensões */}
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleDeclaredInSearch(declared.cnaeDigitos)}
+                                        className="px-2 py-0.5 rounded text-[11px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-300 cursor-pointer flex items-center gap-0.5"
+                                        title={isDeclaredCollapsed ? 'Ver opções de compreensões' : 'Recolher compreensões'}
+                                      >
+                                        <span className="material-symbols-outlined text-[14px]">
+                                          {isDeclaredCollapsed ? 'expand_more' : 'expand_less'}
+                                        </span>
+                                        {isDeclaredCollapsed ? 'Ver opções' : 'Recolher'}
+                                      </button>
+                                    </div>
 
-                                  {/* Lista de compreensões (colapsável quando 'nenhuma se aplica') */}
-                                  {declared.status !== 'none_applies' ? (
-                                    <div className="space-y-1.5">
-                                      {declared.compreensoesDisponiveis.map((comp) => {
-                                        const isSelected = declared.compreensoesSelecionadas.some(
-                                          (s) => s.cvsRecordId === comp.cvsRecordId
-                                        );
-                                        return (
-                                          <div
-                                            key={comp.cvsRecordId}
-                                            className={`border rounded-lg p-2 transition-all ${
-                                              isSelected
-                                                ? 'border-indigo-400 bg-indigo-50/60 ring-1 ring-indigo-200'
-                                                : 'border-slate-200 bg-white hover:border-slate-300'
-                                            }`}
-                                          >
-                                            <div className="flex items-start gap-2">
-                                              <div className="flex-1 min-w-0">
-                                                <div className="text-xs font-semibold text-slate-800 leading-relaxed">
-                                                  {comp.compreensao}
-                                                </div>
-                                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                                  <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
-                                                    Risco: {comp.risco}
-                                                  </span>
-                                                  {/* Tag LTA por compreensão */}
-                                                  <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${
-                                                    checkHasDoc52(comp.documentosInspecao)
-                                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                  }`}>
-                                                    {checkHasDoc52(comp.documentosInspecao) ? 'Exige LTA' : 'Não exige LTA'}
-                                                  </span>
-                                                </div>
+                                    {/* Quando colapsado: exibe apenas o resumo da escolha */}
+                                    {isDeclaredCollapsed ? (
+                                      <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+                                        {declared.status === 'confirmed' ? (
+                                          <div className="space-y-1">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">
+                                              Compreensão Selecionada:
+                                            </span>
+                                            {declared.compreensoesSelecionadas.map((comp) => (
+                                              <div key={comp.cvsRecordId} className="flex items-start justify-between gap-2">
+                                                <span className="font-semibold text-slate-800 leading-relaxed flex-1">
+                                                  • {comp.compreensao}
+                                                </span>
+                                                <span className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded border shrink-0 ${
+                                                  checkHasDoc52(comp.documentosInspecao)
+                                                    ? 'bg-rose-100 text-rose-800 border-rose-200'
+                                                    : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                                }`}>
+                                                  {checkHasDoc52(comp.documentosInspecao) ? 'Exige LTA' : 'Não exige LTA'}
+                                                </span>
                                               </div>
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  onUpdateDeclaredCnae(declared.cnaeDigitos, (d) =>
-                                                    toggleCompreensao(d, comp)
-                                                  );
-                                                }}
-                                                className={`shrink-0 px-2.5 py-1 rounded-md text-[10px] font-bold transition-colors cursor-pointer ${
-                                                  isSelected
-                                                    ? 'bg-rose-600 text-white hover:bg-rose-700'
-                                                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                                }`}
-                                                title={isSelected ? 'Remover esta compreensão' : 'Incluir esta compreensão'}
-                                              >
-                                                {isSelected ? 'Remover' : 'Incluir'}
-                                              </button>
-                                            </div>
-                                            {/* Não compreende — colapsado por padrão */}
-                                            {comp.naoCompreende && (
-                                              <details className="mt-1">
-                                                <summary className="text-[10px] text-slate-400 cursor-pointer hover:text-slate-600 list-none inline-flex items-center gap-0.5">
-                                                  <span className="material-symbols-outlined text-[12px]">info</span>
-                                                  Não compreende
-                                                </summary>
-                                                <p className="text-[10px] text-slate-500 mt-1 leading-relaxed whitespace-pre-line">
-                                                  {comp.naoCompreende}
-                                                </p>
-                                              </details>
-                                            )}
+                                            ))}
                                           </div>
-                                        );
-                                      })}
-                                    </div>
-                                  ) : (
-                                    <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500 italic">
-                                      {declared.compreensoesDisponiveis.length} {declared.compreensoesDisponiveis.length === 1 ? 'compreensão disponível foi' : 'compreensões disponíveis foram'} marcada(s) como não aplicáveis.
-                                    </div>
-                                  )}
+                                        ) : declared.status === 'none_applies' ? (
+                                          <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
+                                            <span className="material-symbols-outlined text-[15px] text-slate-500">check_circle</span>
+                                            Opção declarada: Nenhuma compreensão da Portaria CVS 01 se aplica
+                                          </div>
+                                        ) : (
+                                          <span className="text-amber-700 font-bold">Pendente de verificação</span>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      /* Quando expandido: exibe o rol completo com a escolhida em forte destaque */
+                                      <div className="space-y-2">
+                                        <div className="space-y-1.5">
+                                          {declared.compreensoesDisponiveis.map((comp) => {
+                                            const isSelected = declared.compreensoesSelecionadas.some(
+                                              (s) =>
+                                                (s.cvsRecordId !== undefined && comp.cvsRecordId !== undefined && String(s.cvsRecordId) === String(comp.cvsRecordId)) ||
+                                                s.compreensao.trim() === comp.compreensao.trim()
+                                            );
+                                            const hasLta = checkHasDoc52(comp.documentosInspecao);
+                                            return (
+                                              <div
+                                                key={comp.cvsRecordId}
+                                                className={`rounded-lg p-2.5 transition-all ${
+                                                  isSelected
+                                                    ? 'border-2 border-emerald-500 bg-emerald-50/80 shadow-2xs ring-1 ring-emerald-200'
+                                                    : 'border border-slate-200 bg-white hover:border-slate-300'
+                                                }`}
+                                              >
+                                                <div className="flex items-start gap-2">
+                                                  <div className="flex-1 min-w-0">
+                                                    {isSelected && (
+                                                      <div className="mb-1">
+                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-emerald-700 text-white text-[9px] font-bold uppercase tracking-wider">
+                                                          <span className="material-symbols-outlined text-[12px]">check</span>
+                                                          Compreensão Selecionada
+                                                        </span>
+                                                      </div>
+                                                    )}
+                                                    <div className={`text-xs leading-relaxed ${isSelected ? 'font-bold text-slate-900' : 'font-semibold text-slate-800'}`}>
+                                                      {comp.compreensao}
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                                      <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
+                                                        Risco: {comp.risco}
+                                                      </span>
+                                                      <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${
+                                                        hasLta
+                                                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                      }`}>
+                                                        {hasLta ? 'Exige LTA' : 'Não exige LTA'}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      onUpdateDeclaredCnae(declared.cnaeDigitos, (d) =>
+                                                        toggleCompreensao(d, comp)
+                                                      );
+                                                    }}
+                                                    className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-xs ${
+                                                      isSelected
+                                                        ? 'bg-rose-600 text-white hover:bg-rose-700'
+                                                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                                    }`}
+                                                    title={isSelected ? 'Remover esta compreensão' : 'Incluir esta atividade'}
+                                                  >
+                                                    {isSelected ? 'Remover' : 'Incluir'}
+                                                  </button>
+                                                </div>
+                                                {comp.naoCompreende && (
+                                                  <details className="mt-1">
+                                                    <summary className="text-[10px] text-slate-400 cursor-pointer hover:text-slate-600 list-none inline-flex items-center gap-0.5">
+                                                      <span className="material-symbols-outlined text-[12px]">info</span>
+                                                      Não compreende
+                                                    </summary>
+                                                    <p className="text-[10px] text-slate-500 mt-1 leading-relaxed whitespace-pre-line bg-slate-50/70 p-2 rounded border border-slate-100">
+                                                      {comp.naoCompreende}
+                                                    </p>
+                                                  </details>
+                                                )}
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
 
-                                  {/* Opção "Nenhuma compreensão se aplica" — sempre visível */}
-                                  <div className="pt-1.5">
-                                    <div
-                                      className={`flex items-center gap-2 p-2 rounded-lg transition-all ${
-                                        declared.status === 'none_applies'
-                                          ? 'bg-slate-100 border border-slate-300'
-                                          : 'border border-transparent hover:bg-slate-50'
-                                      }`}
-                                    >
-                                      <span className="flex-1 text-xs font-medium text-slate-700">
-                                        Nenhuma das compreensões acima se aplica à atividade efetivamente exercida
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          onUpdateDeclaredCnae(declared.cnaeDigitos, (d) =>
+                                        {/* Opção "Nenhuma compreensão se aplica" com destaque visual e remoção limpa */}
+                                        <div
+                                          className={`flex items-center gap-2 p-2.5 rounded-lg transition-all ${
                                             declared.status === 'none_applies'
-                                              ? resetVerification(d)
-                                              : confirmNoneApplies(d)
-                                          );
-                                        }}
-                                        className={`shrink-0 px-2.5 py-1 rounded-md text-[10px] font-bold transition-colors cursor-pointer ${
-                                          declared.status === 'none_applies'
-                                            ? 'bg-rose-600 text-white hover:bg-rose-700'
-                                            : 'bg-slate-600 text-white hover:bg-slate-700'
-                                        }`}
-                                        title={declared.status === 'none_applies' ? 'Remover esta opção' : 'Incluir esta opção'}
-                                      >
-                                        {declared.status === 'none_applies' ? 'Remover' : 'Incluir'}
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  {/* Status */}
-                                  <div className="flex items-center justify-between pt-1">
-                                    {declared.status === 'pending' && (
-                                      <span className="text-[11px] font-bold text-amber-700 flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                        Pendente de verificação
-                                      </span>
+                                              ? 'border-2 border-slate-600 bg-slate-100 ring-1 ring-slate-300 shadow-2xs'
+                                              : 'border border-slate-200 bg-white hover:bg-slate-50'
+                                          }`}
+                                        >
+                                          <div className="flex-1 min-w-0">
+                                            {declared.status === 'none_applies' && (
+                                              <div className="mb-1">
+                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-slate-700 text-white text-[9px] font-bold uppercase tracking-wider">
+                                                  <span className="material-symbols-outlined text-[12px]">check</span>
+                                                  Opção Declarada
+                                                </span>
+                                              </div>
+                                            )}
+                                            <span className={`text-xs block ${declared.status === 'none_applies' ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>
+                                              Nenhuma das compreensões acima se aplica à atividade efetivamente exercida
+                                            </span>
+                                            <span className="text-[10px] text-slate-500 block mt-0.5">
+                                              Dispensada de LTA para este CNAE perante a Vigilância Sanitária Municipal.
+                                            </span>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              if (declared.status === 'none_applies') {
+                                                onRemoveDeclaredCnae(declared.cnaeDigitos);
+                                              } else {
+                                                onUpdateDeclaredCnae(declared.cnaeDigitos, (d) =>
+                                                  confirmNoneApplies(d)
+                                                );
+                                              }
+                                            }}
+                                            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-xs ${
+                                              declared.status === 'none_applies'
+                                                ? 'bg-rose-600 text-white hover:bg-rose-700'
+                                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                            }`}
+                                            title={declared.status === 'none_applies' ? 'Remover esta atividade' : 'Incluir esta atividade'}
+                                          >
+                                            {declared.status === 'none_applies' ? 'Remover' : 'Incluir'}
+                                          </button>
+                                        </div>
+                                      </div>
                                     )}
-                                    {declared.status === 'confirmed' && (
-                                      <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                        Verificado ({declared.compreensoesSelecionadas.length} {declared.compreensoesSelecionadas.length === 1 ? 'compreensão' : 'compreensões'})
-                                      </span>
-                                    )}
-                                    {declared.status === 'none_applies' && (
-                                      <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
-                                        Sem compreensão aplicável
-                                      </span>
-                                    )}
-                                    {declared.status !== 'pending' && !declared.naoConstaCvs && (
-                                      <button
-                                        type="button"
-                                        onClick={() => onUpdateDeclaredCnae(declared.cnaeDigitos, (d) => resetVerification(d))}
-                                        className="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer"
-                                      >
-                                        Alterar seleção
-                                      </button>
-                                    )}
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          )}
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })}

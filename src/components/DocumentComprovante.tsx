@@ -124,7 +124,7 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
             <html lang="pt-BR">
               <head>
                 <meta charset="utf-8" />
-                <title>Comprovante_Consulta_Necessidade_LTA_Sertaozinho</title>
+                <title>Comprovante_Triagem_LTA_Sertaozinho</title>
                 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
                 <script src="https://cdn.tailwindcss.com"></script>
                 <style>
@@ -277,7 +277,7 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
       <div className="no-print bg-amber-50/90 border border-amber-300/80 rounded-xl p-3 sm:px-4 text-xs text-amber-950 flex items-center gap-2.5 shadow-2xs">
         <span className="material-symbols-outlined text-amber-700 text-[20px] shrink-0">info</span>
         <p className="flex-1 leading-snug">
-          <strong>Atenção:</strong> Esta consulta é declaratória. Baixe o <strong>comprovante em PDF</strong> acima para apresentá-lo junto ao seu processo de licenciamento sanitário.
+          <strong>Atenção:</strong> Esta consulta é declaratória. Baixe o <strong>comprovante em PDF</strong> acima para anexá-lo junto ao seu processo.
         </p>
       </div>
 
@@ -320,7 +320,7 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
         {/* Title */}
         <div className="text-center mb-5">
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight uppercase">
-            Comprovante de Consulta sobre a Necessidade de LTA
+            Comprovante de Triagem de LTA
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 mt-1 font-medium">
             Resultado da consulta de enquadramento conforme a {PORTARIA_CVS_LABEL}
@@ -583,15 +583,16 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
                                     : 'bg-emerald-50/30 border-emerald-200'
                                 }`}
                               >
-                                <div className="flex items-start justify-between gap-2 flex-wrap mb-1">
-                                  <p className="text-slate-900 font-medium leading-relaxed flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 mb-1.5">
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/90 border border-emerald-300 px-2 py-0.5 rounded">
+                                    <span className="material-symbols-outlined text-[12px]">check</span>
+                                    Compreensão Sanitária Selecionada (Portaria CVS 01)
+                                  </span>
+                                </div>
+                                <div className="mb-1">
+                                  <p className="text-slate-900 font-semibold leading-relaxed">
                                     {act.compreensao}
                                   </p>
-                                  {act.paginaCvs && String(act.paginaCvs) !== 'N/A' && (
-                                    <span className="text-[10px] text-slate-500 font-mono shrink-0">
-                                      CVS p. {act.paginaCvs}
-                                    </span>
-                                  )}
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span
@@ -603,11 +604,6 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
                                   >
                                     {actLta ? 'Exige LTA' : 'Não exige LTA'}
                                   </span>
-                                  {actLta && hasDoc52 && (
-                                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
-                                      Documento 52 presente
-                                    </span>
-                                  )}
                                 </div>
                                 {excItems.length > 0 && (
                                   <div className="mt-1.5">
@@ -645,9 +641,14 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
 
                       {/* Caso: nenhuma compreensão se aplica */}
                       {isNenhumaAplicavel && (
-                        <div className="bg-white p-2.5 rounded border border-slate-200">
-                          <p className="text-slate-700 leading-relaxed">{firstAct.compreensao}</p>
-                          <div className="flex items-center gap-2 flex-wrap mt-2">
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                            Declaração de Enquadramento Sanitário (Portaria CVS 01):
+                          </span>
+                          <p className="text-slate-800 font-semibold leading-relaxed">
+                            {firstAct.compreensao}
+                          </p>
+                          <div className="flex items-center gap-2 flex-wrap pt-1">
                             <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
                               Não exige LTA
                             </span>

@@ -90,7 +90,7 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
       doc.setFontSize(8);
       doc.setTextColor(120, 130, 145);
       doc.text(
-        'Prefeitura Municipal de Sertãozinho-SP • Vigilância Sanitária • Comprovante de Consulta sobre Necessidade de LTA',
+        'Prefeitura Municipal de Sertãozinho-SP • Vigilância Sanitária • Comprovante de Triagem de LTA',
         marginX,
         y
       );
@@ -150,7 +150,7 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(15, 23, 42);
-  doc.text('COMPROVANTE DE CONSULTA SOBRE A NECESSIDADE DE LTA', pageWidth / 2, y, { align: 'center' });
+  doc.text('COMPROVANTE DE TRIAGEM DE LTA', pageWidth / 2, y, { align: 'center' });
 
   y += 4.5;
   doc.setFont('helvetica', 'normal');
@@ -470,7 +470,7 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
         const compInnerWidth = contentWidth - 14;
         const cLines = doc.splitTextToSize(firstAct.compreensao || '-', compInnerWidth);
         const badgeH = 4.5;
-        compsHeight = 5 + cLines.length * 3.2 + 2 + badgeH + 1.5;
+        compsHeight = 4 + 3.5 + cLines.length * 3.2 + 2 + badgeH + 1.5;
         compRender.push({
           lines: cLines,
           excItems: [],
@@ -584,23 +584,15 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(6.8);
           doc.setTextColor(c.actNeedsLta ? 159 : 6, c.actNeedsLta ? 18 : 95, c.actNeedsLta ? 57 : 70);
-          doc.text('COMPREENSÃO SANITÁRIA (CVS 01):', marginX + 6, actY + 3.5);
+          doc.text('COMPREENSÃO SANITÁRIA SELECIONADA (CVS 01):', marginX + 6, actY + 3.5);
 
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(7.5);
           doc.setTextColor(15, 23, 42);
           doc.text(c.lines, marginX + 6, actY + 6.8);
 
-          // Página CVS
-          if (c.paginaCvs && String(c.paginaCvs) !== 'N/A') {
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(6.2);
-            doc.setTextColor(100, 116, 139);
-            doc.text(`CVS p. ${c.paginaCvs}`, marginX + contentWidth - 6, actY + 3.5, { align: 'right' });
-          }
-
-          // Badge Exige/Não exige LTA + Documento 52
-          let badgeX = marginX + 6;
+          // Badge Exige/Não exige LTA
+          const badgeX = marginX + 6;
           doc.setFillColor(c.actNeedsLta ? 225 : 5, c.actNeedsLta ? 29 : 150, c.actNeedsLta ? 72 : 105);
           doc.roundedRect(badgeX, actY + cBoxH - 5.5, 26, 3.8, 0.8, 0.8, 'F');
           doc.setFont('helvetica', 'bold');
@@ -609,16 +601,6 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
           doc.text(c.actNeedsLta ? 'EXIGE LTA' : 'NÃO EXIGE LTA', badgeX + 13, actY + cBoxH - 3, {
             align: 'center',
           });
-
-          if (c.actNeedsLta && c.hasDoc52) {
-            badgeX += 30;
-            doc.setFillColor(217, 119, 6);
-            doc.roundedRect(badgeX, actY + cBoxH - 5.5, 42, 3.8, 0.8, 0.8, 'F');
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(5.8);
-            doc.setTextColor(255, 255, 255);
-            doc.text('DOCUMENTO 52 PRESENTE', badgeX + 21, actY + cBoxH - 3, { align: 'center' });
-          }
 
           actY += cBoxH + 1.5;
 
@@ -649,16 +631,24 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
         // Caso especial: texto único (nenhuma aplicável / não consta)
         const c = compRender[0];
         const badgeH = 4.5;
-        const cBoxH = 5 + c.lines.length * 3.2 + 2 + badgeH + 1.5;
+        const cBoxH = 4 + 3.5 + c.lines.length * 3.2 + 2 + badgeH + 1.5;
         doc.setFillColor(255, 255, 255);
         doc.setDrawColor(203, 213, 225);
         doc.setLineWidth(0.3);
         doc.roundedRect(marginX + 3.5, actY, contentWidth - 7, cBoxH, 1, 1, 'FD');
 
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.8);
+        doc.setTextColor(71, 85, 105);
+        const headerTitle = isNenhumaAplicavel
+          ? 'DECLARAÇÃO DE ENQUADRAMENTO SANITÁRIO (PORTARIA CVS 01):'
+          : 'ENQUADRAMENTO SANITÁRIO (PORTARIA CVS 01):';
+        doc.text(headerTitle, marginX + 6, actY + 3.5);
+
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7.5);
         doc.setTextColor(51, 65, 85);
-        doc.text(c.lines, marginX + 6, actY + 6.8);
+        doc.text(c.lines, marginX + 6, actY + 7.2);
 
         // Badge "Não exige LTA" (atividades não constantes ou sem compreensão aplicável)
         const badgeX = marginX + 6;
