@@ -65,7 +65,23 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
   // Primary Architecture: 2 Options
   // 1. 'consultar' (Há atividade definida no estabelecimento)
   // 2. 'sem_atividade' (Não há atividade definida - Imóvel para locação / venda / vago)
-  const [mainMode, setMainMode] = useState<'consultar' | 'sem_atividade'>('consultar');
+  // Se ainda não houve escolha, inicia como null para guiar o usuário de forma responsiva
+  const [mainMode, setMainMode] = useState<'consultar' | 'sem_atividade' | null>(() => {
+    if (declaredCnaes.length > 0) return 'consultar';
+    if (
+      selectedActivities.some(
+        (a) => a.cnae === 'SEM CNAE' || a.agrupamento?.includes('SEM ATIVIDADE')
+      )
+    ) {
+      return 'sem_atividade';
+    }
+    return null;
+  });
+
+  // Referência para o campo de busca e container para foco automático e rolagem
+  const searchInputRef = React.useRef<HTMLInputElement | null>(null);
+  const searchSectionRef = React.useRef<HTMLDivElement | null>(null);
+  const [searchHighlight, setSearchHighlight] = useState(false);
 
   // Modal de ajuda
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -165,7 +181,16 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
   // Seleciona o modo principal. Ao escolher "sem_atividade", a declaração é
   // registrada automaticamente (sem passo extra de confirmação).
   const handleSelectMainMode = (mode: 'consultar' | 'sem_atividade') => {
-    if (mode === mainMode) return;
+    if (mode === mainMode) {
+      // Mesmo se já estiver no modo, dá feedback visual imediato ao clique do usuário
+      if (mode === 'consultar') {
+        setSearchHighlight(true);
+        setTimeout(() => setSearchHighlight(false), 1400);
+        searchInputRef.current?.focus();
+        searchSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      return;
+    }
     setMainMode(mode);
     if (mode === 'sem_atividade') {
       // Limpa atividades anteriores e registra a declaração automaticamente
@@ -188,6 +213,13 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
         onRemoveActivity(idx);
       }
       setDeclarationNoActivity(false);
+      // Feedback imediato e foco no campo de busca para o usuário saber exatamente o que fazer
+      setSearchHighlight(true);
+      setTimeout(() => {
+        setSearchHighlight(false);
+        searchInputRef.current?.focus();
+        searchSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
     }
   };
 
@@ -572,18 +604,30 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
 
       {/* Toast de feedback (sempre visível quando há mensagem) */}
       {addedToastMessage && (
-        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs font-bold flex items-center justify-between shadow-xs">
+        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[20px] text-emerald-600">check_circle</span>
+            <span className="material-symbols-outlined text-[20px] text-emerald-600 shrink-0">check_circle</span>
             <span>{addedToastMessage}</span>
           </div>
-          <button
-            type="button"
-            onClick={() => setAddedToastMessage(null)}
-            className="text-emerald-700 hover:text-emerald-900 p-1"
-          >
-            <span className="material-symbols-outlined text-[16px]">close</span>
-          </button>
+          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+            {consultaCompleta && (
+              <button
+                type="button"
+                onClick={onFinish}
+                className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs transition-colors"
+              >
+                <span>Ver Resultado</span>
+                <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setAddedToastMessage(null)}
+              className="text-emerald-700 hover:text-emerald-900 p-1 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -600,6 +644,17 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
               </h2>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
+              {consultaCompleta && (
+                <button
+                  type="button"
+                  onClick={onFinish}
+                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer ring-1 ring-indigo-400"
+                  title="Avançar diretamente para o Comprovante Oficial"
+                >
+                  <span>Continuar e Ver Resultado</span>
+                  <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+                </button>
+              )}
               {declaredCnaes.filter((d) => d.status === 'pending').length > 0 && (
                 <button
                   type="button"
@@ -816,41 +871,61 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
 
       {/* ================= PRIMARY 2-OPTION ARCHITECTURE ================= */}
       <div className="mb-5">
-        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-          Adicionar Nova Atividade ao Estabelecimento:
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">
+            {mainMode === null ? 'Passo 1: Selecione como deseja informar a atividade:' : 'Modo de Informação da Atividade:'}
+          </label>
+          {mainMode === null && (
+            <span className="text-[11px] font-bold text-indigo-600 animate-pulse flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px]">touch_app</span>
+              Clique em uma opção para abrir
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           {/* Opção 1 — CONSULTAR ATIVIDADE */}
           <button
             type="button"
             onClick={() => handleSelectMainMode('consultar')}
-            className={`p-4 rounded-xl border text-left transition-all flex items-start gap-3.5 cursor-pointer ${
+            className={`p-4 rounded-xl border text-left transition-all flex items-start gap-3.5 cursor-pointer relative overflow-hidden group ${
               mainMode === 'consultar'
-                ? 'bg-white border-indigo-600 ring-2 ring-indigo-600/20 shadow-xs'
-                : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                ? 'bg-white border-indigo-600 ring-2 ring-indigo-600/30 shadow-sm'
+                : 'bg-white border-slate-300 hover:border-indigo-400 hover:bg-indigo-50/20 shadow-xs'
             }`}
           >
             <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                mainMode === 'consultar' ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700'
+              className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                mainMode === 'consultar' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-indigo-50 text-indigo-700 group-hover:bg-indigo-100'
               }`}
             >
-              <span className="material-symbols-outlined text-[22px]">manage_search</span>
+              <span className="material-symbols-outlined text-[24px]">manage_search</span>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-                    mainMode === 'consultar'
-                      ? 'bg-indigo-100 text-indigo-800'
-                      : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  Opção 1
-                </span>
-                <span className="text-xs sm:text-sm font-bold text-slate-900">
-                  CONSULTAR ATIVIDADE
-                </span>
+              <div className="flex items-center justify-between gap-1.5 mb-1 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                      mainMode === 'consultar'
+                        ? 'bg-indigo-100 text-indigo-800'
+                        : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    Opção 1
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-900">
+                    CONSULTAR ATIVIDADE
+                  </span>
+                </div>
+                {mainMode === 'consultar' ? (
+                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px]">check</span>
+                    Busca Ativa
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50/90 px-2 py-0.5 rounded-full border border-indigo-200 group-hover:bg-indigo-100">
+                    Clique para buscar
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-700 font-semibold leading-snug mb-1">
                 Pesquise uma atividade já definida para verificar se exige LTA.
@@ -865,33 +940,45 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
           <button
             type="button"
             onClick={() => handleSelectMainMode('sem_atividade')}
-            className={`p-4 rounded-xl border text-left transition-all flex items-start gap-3.5 cursor-pointer ${
+            className={`p-4 rounded-xl border text-left transition-all flex items-start gap-3.5 cursor-pointer relative overflow-hidden group ${
               mainMode === 'sem_atividade'
-                ? 'bg-white border-emerald-600 ring-2 ring-emerald-600/20 shadow-xs'
-                : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                ? 'bg-white border-emerald-600 ring-2 ring-emerald-600/30 shadow-sm'
+                : 'bg-white border-slate-300 hover:border-emerald-400 hover:bg-emerald-50/20 shadow-xs'
             }`}
           >
             <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                mainMode === 'sem_atividade' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700'
+              className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                mainMode === 'sem_atividade' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-emerald-50 text-emerald-700 group-hover:bg-emerald-100'
               }`}
             >
-              <span className="material-symbols-outlined text-[22px]">apartment</span>
+              <span className="material-symbols-outlined text-[24px]">apartment</span>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-                    mainMode === 'sem_atividade'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  Opção 2
-                </span>
-                <span className="text-xs sm:text-sm font-bold text-slate-900">
-                  SEM ATIVIDADE DEFINIDA
-                </span>
+              <div className="flex items-center justify-between gap-1.5 mb-1 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                      mainMode === 'sem_atividade'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    Opção 2
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-slate-900">
+                    SEM ATIVIDADE DEFINIDA
+                  </span>
+                </div>
+                {mainMode === 'sem_atividade' ? (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px]">check</span>
+                    Selecionada
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50/90 px-2 py-0.5 rounded-full border border-emerald-200 group-hover:bg-emerald-100">
+                    Clique para selecionar
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-700 font-semibold leading-snug mb-1">
                 Imóvel para locação, venda ou atualmente sem atividade definida.
@@ -904,19 +991,48 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
         </div>
       </div>
 
+      {/* Dica guia quando nenhuma opção foi clicada ainda */}
+      {mainMode === null && (
+        <div className="bg-indigo-50/60 border border-dashed border-indigo-200 rounded-xl p-5 text-center my-6">
+          <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-2">
+            <span className="material-symbols-outlined text-[22px]">touch_app</span>
+          </div>
+          <p className="text-xs sm:text-sm font-bold text-slate-800 mb-1">
+            Selecione uma das opções acima para continuar
+          </p>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            Clique na <strong>Opção 1</strong> para abrir o campo de busca por código CNAE ou descrição da atividade, ou na <strong>Opção 2</strong> se o imóvel não possuir atividade vinculada.
+          </p>
+        </div>
+      )}
+
       {/* ================= OPTION 1: CONSULTAR ATIVIDADE ================= */}
       {mainMode === 'consultar' && (
-        <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 mb-6 shadow-xs space-y-4 animate-fadeIn">
-              {/* Campo de Busca Principal Direto e Sem Redundâncias */}
+        <div
+          ref={searchSectionRef}
+          className={`bg-white rounded-xl border p-4 sm:p-5 mb-6 shadow-xs space-y-4 transition-all duration-300 ${
+            searchHighlight
+              ? 'border-indigo-500 ring-4 ring-indigo-500/25 shadow-md'
+              : 'border-slate-200'
+          }`}
+        >
+              {/* Campo de Busca Principal com feedback imediato de abertura */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Buscar Atividade por Código CNAE ou Descrição
-                </label>
+                <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Buscar Atividade por Código CNAE ou Descrição
+                  </label>
+                  <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>
+                    Busca de atividades aberta
+                  </span>
+                </div>
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-[20px]">
                     search
                   </span>
                   <input
+                    ref={searchInputRef}
                     type="text"
                     value={searchTerm}
                     onChange={(e) => {
@@ -1385,6 +1501,25 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
                               </div>
                             );
                           })()}
+
+                          {alreadyDeclared && (
+                            <div className="mt-3 pt-2.5 border-t border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-indigo-50/60 -mx-3 -mb-3 p-3 rounded-b-xl">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
+                                <span className="material-symbols-outlined text-[18px] text-emerald-600">check_circle</span>
+                                <span>Atividade adicionada ao estabelecimento!</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={onFinish}
+                                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer ring-1 ring-indigo-400"
+                                >
+                                  <span>Continuar e Ver Resultado</span>
+                                  <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1542,6 +1677,63 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
         </div>
       )}
 
+      {/* ================= STICKY FLOATING ACTION DOCK (Garante que o botão de próximo passo NUNCA fique escondido) ================= */}
+      {((mainMode === 'consultar' && declaredCnaes.length > 0) || (mainMode === 'sem_atividade' && selectedActivities.length > 0)) && (
+        <div className="sticky bottom-3 z-30 my-6 bg-slate-900/95 backdrop-blur-md text-white p-3.5 sm:p-4 rounded-2xl shadow-xl border border-slate-700/80 flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+              consultaCompleta || mainMode === 'sem_atividade' ? 'bg-emerald-500' : 'bg-amber-500'
+            } text-white shadow-sm`}>
+              <span className="material-symbols-outlined text-[22px]">
+                {consultaCompleta || mainMode === 'sem_atividade' ? 'task_alt' : 'pending_actions'}
+              </span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm font-bold text-white">
+                  {mainMode === 'sem_atividade'
+                    ? 'Declaração sem atividade registrada'
+                    : `${declaredCnaes.length} ${declaredCnaes.length === 1 ? 'atividade adicionada' : 'atividades adicionadas'}`}
+                </span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  consultaCompleta || mainMode === 'sem_atividade'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                }`}>
+                  {consultaCompleta || mainMode === 'sem_atividade' ? 'Pronto para avançar' : `${pendingCount} pendência`}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                {consultaCompleta || mainMode === 'sem_atividade'
+                  ? 'Tudo pronto. Prossiga para emitir seu Comprovante Oficial de Triagem de LTA.'
+                  : 'Selecione a compreensão sanitária antes de avançar.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {consultaCompleta || mainMode === 'sem_atividade' ? (
+              <button
+                type="button"
+                onClick={onFinish}
+                className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-indigo-600/40 transition-all flex items-center justify-center gap-2 cursor-pointer ring-2 ring-indigo-400"
+              >
+                <span>Continuar e Ver Resultado</span>
+                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleGoToPending}
+                className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs sm:text-sm rounded-xl shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Resolver Pendência</span>
+                <span className="material-symbols-outlined text-[16px]">pending_actions</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ================= FOOTER NAVIGATION ================= */}
       <div className="flex items-center justify-between pt-6 border-t border-slate-200">
         <button
@@ -1555,6 +1747,19 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
 
         {/* FASE 2: Lógica de conclusão considera CNAEs declarados e pendências */}
         {(() => {
+          if (mainMode === null) {
+            return (
+              <button
+                type="button"
+                disabled
+                className="px-6 py-2.5 rounded-lg bg-slate-200 text-slate-400 cursor-not-allowed text-xs sm:text-sm font-semibold flex items-center gap-2"
+              >
+                Selecione uma opção acima para continuar
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </button>
+            );
+          }
+
           if (mainMode === 'sem_atividade') {
             // Modo sem atividade: usa lógica existente
             if (selectedActivities.length > 0) {
@@ -1562,7 +1767,7 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
                 <button
                   type="button"
                   onClick={onFinish}
-                  className="px-6 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-xs sm:text-sm font-bold shadow-sm flex items-center gap-2 cursor-pointer"
+                  className="px-6 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-xs sm:text-sm font-bold shadow-sm flex items-center gap-2 cursor-pointer ring-1 ring-indigo-400"
                 >
                   Continuar e Ver Resultado
                   <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
@@ -1588,7 +1793,7 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
                 <button
                   type="button"
                   onClick={onFinish}
-                  className="px-6 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-xs sm:text-sm font-bold shadow-sm flex items-center gap-2 cursor-pointer"
+                  className="px-6 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-xs sm:text-sm font-bold shadow-sm flex items-center gap-2 cursor-pointer ring-1 ring-indigo-400"
                 >
                   Continuar e Ver Resultado
                   <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
@@ -1628,7 +1833,7 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
               disabled
               className="px-6 py-2.5 rounded-lg bg-slate-200 text-slate-400 cursor-not-allowed text-xs sm:text-sm font-semibold flex items-center gap-2"
             >
-              Adicione ao menos um CNAE
+              Pesquise e inclua ao menos uma atividade
               <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </button>
           );
