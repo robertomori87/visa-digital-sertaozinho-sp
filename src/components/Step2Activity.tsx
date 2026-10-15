@@ -604,30 +604,18 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
 
       {/* Toast de feedback (sempre visível quando há mensagem) */}
       {addedToastMessage && (
-        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs">
+        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs font-bold flex items-center justify-between gap-2 shadow-xs">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[20px] text-emerald-600 shrink-0">check_circle</span>
             <span>{addedToastMessage}</span>
           </div>
-          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-            {consultaCompleta && (
-              <button
-                type="button"
-                onClick={onFinish}
-                className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs transition-colors"
-              >
-                <span>Ver Resultado</span>
-                <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setAddedToastMessage(null)}
-              className="text-emerald-700 hover:text-emerald-900 p-1 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[16px]">close</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setAddedToastMessage(null)}
+            className="text-emerald-700 hover:text-emerald-900 p-1 cursor-pointer shrink-0"
+          >
+            <span className="material-symbols-outlined text-[16px]">close</span>
+          </button>
         </div>
       )}
 
@@ -644,17 +632,6 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
               </h2>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              {consultaCompleta && (
-                <button
-                  type="button"
-                  onClick={onFinish}
-                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer ring-1 ring-indigo-400"
-                  title="Avançar diretamente para o Comprovante Oficial"
-                >
-                  <span>Continuar e Ver Resultado</span>
-                  <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
-                </button>
-              )}
               {declaredCnaes.filter((d) => d.status === 'pending').length > 0 && (
                 <button
                   type="button"
@@ -1501,25 +1478,6 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
                               </div>
                             );
                           })()}
-
-                          {alreadyDeclared && (
-                            <div className="mt-3 pt-2.5 border-t border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-indigo-50/60 -mx-3 -mb-3 p-3 rounded-b-xl">
-                              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
-                                <span className="material-symbols-outlined text-[18px] text-emerald-600">check_circle</span>
-                                <span>Atividade adicionada ao estabelecimento!</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={onFinish}
-                                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer ring-1 ring-indigo-400"
-                                >
-                                  <span>Continuar e Ver Resultado</span>
-                                  <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
-                                </button>
-                              </div>
-                            </div>
-                          )}
                         </div>
                       );
                     })}
@@ -1677,167 +1635,157 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
         </div>
       )}
 
-      {/* ================= STICKY FLOATING ACTION DOCK (Garante que o botão de próximo passo NUNCA fique escondido) ================= */}
-      {((mainMode === 'consultar' && declaredCnaes.length > 0) || (mainMode === 'sem_atividade' && selectedActivities.length > 0)) && (
-        <div className="sticky bottom-3 z-30 my-6 bg-slate-900/95 backdrop-blur-md text-white p-3.5 sm:p-4 rounded-2xl shadow-xl border border-slate-700/80 flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-              consultaCompleta || mainMode === 'sem_atividade' ? 'bg-emerald-500' : 'bg-amber-500'
-            } text-white shadow-sm`}>
-              <span className="material-symbols-outlined text-[22px]">
-                {consultaCompleta || mainMode === 'sem_atividade' ? 'task_alt' : 'pending_actions'}
-              </span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm font-bold text-white">
-                  {mainMode === 'sem_atividade'
-                    ? 'Declaração sem atividade registrada'
-                    : `${declaredCnaes.length} ${declaredCnaes.length === 1 ? 'atividade adicionada' : 'atividades adicionadas'}`}
-                </span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  consultaCompleta || mainMode === 'sem_atividade'
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                }`}>
-                  {consultaCompleta || mainMode === 'sem_atividade' ? 'Pronto para avançar' : `${pendingCount} pendência`}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-300 mt-0.5">
-                {consultaCompleta || mainMode === 'sem_atividade'
-                  ? 'Tudo pronto. Prossiga para emitir seu Comprovante Oficial de Triagem de LTA.'
-                  : 'Selecione a compreensão sanitária antes de avançar.'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {consultaCompleta || mainMode === 'sem_atividade' ? (
-              <button
-                type="button"
-                onClick={onFinish}
-                className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-indigo-600/40 transition-all flex items-center justify-center gap-2 cursor-pointer ring-2 ring-indigo-400"
-              >
-                <span>Continuar e Ver Resultado</span>
-                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleGoToPending}
-                className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs sm:text-sm rounded-xl shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Resolver Pendência</span>
-                <span className="material-symbols-outlined text-[16px]">pending_actions</span>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ================= FOOTER NAVIGATION ================= */}
-      <div className="flex items-center justify-between pt-6 border-t border-slate-200">
-        <button
-          type="button"
-          onClick={onPrev}
-          className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition-colors text-xs sm:text-sm font-medium flex items-center gap-1.5 cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-          Voltar para Identificação
-        </button>
-
-        {/* FASE 2: Lógica de conclusão considera CNAEs declarados e pendências */}
-        {(() => {
-          if (mainMode === null) {
-            return (
-              <button
-                type="button"
-                disabled
-                className="px-6 py-2.5 rounded-lg bg-slate-200 text-slate-400 cursor-not-allowed text-xs sm:text-sm font-semibold flex items-center gap-2"
-              >
-                Selecione uma opção acima para continuar
-                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-              </button>
-            );
-          }
-
-          if (mainMode === 'sem_atividade') {
-            // Modo sem atividade: usa lógica existente
-            if (selectedActivities.length > 0) {
-              return (
-                <button
-                  type="button"
-                  onClick={onFinish}
-                  className="px-6 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-xs sm:text-sm font-bold shadow-sm flex items-center gap-2 cursor-pointer ring-1 ring-indigo-400"
-                >
-                  Continuar e Ver Resultado
-                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                </button>
-              );
-            }
-            return (
-              <button
-                type="button"
-                disabled
-                className="px-6 py-2.5 rounded-lg bg-slate-200 text-slate-400 cursor-not-allowed text-xs sm:text-sm font-semibold flex items-center gap-2"
-              >
-                Marque a declaração acima para continuar
-                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-              </button>
-            );
-          }
-
-          // Modo consultar: prioriza CNAEs declarados
-          if (declaredCnaes.length > 0) {
-            if (consultaCompleta) {
-              return (
-                <button
-                  type="button"
-                  onClick={onFinish}
-                  className="px-6 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-xs sm:text-sm font-bold shadow-sm flex items-center gap-2 cursor-pointer ring-1 ring-indigo-400"
-                >
-                  Continuar e Ver Resultado
-                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                </button>
-              );
-            }
-            return (
-              <button
-                type="button"
-                onClick={handleGoToPending}
-                className="px-6 py-2.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors text-xs sm:text-sm font-bold flex items-center gap-2 border border-amber-600 cursor-pointer shadow-sm animate-pulse"
-                title="Clique para ir até a pendência"
-              >
-                {pendingCount} {pendingCount === 1 ? 'verificação pendente' : 'verificações pendentes'}
-                <span className="material-symbols-outlined text-[16px]">pending_actions</span>
-              </button>
-            );
-          }
-
-          // Fallback: atividades selecionadas diretamente (compatibilidade)
-          if (selectedActivities.length > 0) {
-            return (
-              <button
-                type="button"
-                onClick={onFinish}
-                className="px-6 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-xs sm:text-sm font-bold shadow-sm flex items-center gap-2 cursor-pointer"
-              >
-                Continuar e Ver Resultado
-                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-              </button>
-            );
-          }
-
-          return (
+      {/* ================= BARRA DE NAVEGAÇÃO SEMPRE VISÍVEL (ÚNICA DA PÁGINA 2) ================= */}
+      <div className="sticky bottom-3 z-30 mt-8 bg-slate-900/95 backdrop-blur-md text-white p-3 sm:p-3.5 rounded-2xl shadow-xl border border-slate-700/80 animate-fadeIn">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-4">
+          {/* Lado Esquerdo: Botão Voltar */}
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              disabled
-              className="px-6 py-2.5 rounded-lg bg-slate-200 text-slate-400 cursor-not-allowed text-xs sm:text-sm font-semibold flex items-center gap-2"
+              onClick={onPrev}
+              className="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 transition-colors text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+              title="Voltar para a Identificação do Solicitante"
             >
-              Pesquise e inclua ao menos uma atividade
-              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+              Voltar
             </button>
-          );
-        })()}
+          </div>
+
+          {/* Centro: Status do Estabelecimento */}
+          <div className="hidden sm:flex items-center justify-center gap-2 text-center sm:text-left py-0.5 min-w-0">
+            {mainMode === null ? (
+              <p className="text-xs text-slate-400 truncate">
+                Selecione uma opção para prosseguir
+              </p>
+            ) : mainMode === 'sem_atividade' ? (
+              selectedActivities.length > 0 ? (
+                <div className="flex items-center gap-2 truncate">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+                  <span className="text-xs text-emerald-300 font-semibold truncate">
+                    Declaração de imóvel sem atividade registrada
+                  </span>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 truncate">
+                  Aguardando registro da declaração
+                </p>
+              )
+            ) : declaredCnaes.length === 0 ? (
+              <p className="text-xs text-slate-400 truncate">
+                Pesquise e inclua ao menos uma atividade
+              </p>
+            ) : consultaCompleta ? (
+              <div className="flex items-center gap-2 truncate">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+                <span className="text-xs text-emerald-300 font-bold truncate">
+                  {declaredCnaes.length} {declaredCnaes.length === 1 ? 'atividade pronta' : 'atividades prontas'}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 truncate">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+                <span className="text-xs text-amber-300 font-semibold truncate">
+                  {pendingCount} {pendingCount === 1 ? 'verificação pendente' : 'verificações pendentes'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Lado Direito: O ÚNICO Botão de Avanço na Página */}
+          <div className="shrink-0 flex items-center justify-end">
+            {(() => {
+              if (mainMode === null) {
+                return (
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-800 text-slate-500 cursor-not-allowed text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 whitespace-nowrap"
+                  >
+                    Selecione uma opção
+                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                  </button>
+                );
+              }
+
+              if (mainMode === 'sem_atividade') {
+                if (selectedActivities.length > 0) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={onFinish}
+                      className="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-indigo-950/40 transition-all flex items-center justify-center gap-2 cursor-pointer ring-2 ring-indigo-400 whitespace-nowrap"
+                    >
+                      <span>Continuar e Ver Resultado</span>
+                      <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                    </button>
+                  );
+                }
+                return (
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-800 text-slate-500 cursor-not-allowed text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 whitespace-nowrap"
+                  >
+                    Marque a declaração
+                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                  </button>
+                );
+              }
+
+              // Modo consultar
+              if (declaredCnaes.length > 0) {
+                if (consultaCompleta) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={onFinish}
+                      className="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-indigo-950/40 transition-all flex items-center justify-center gap-2 cursor-pointer ring-2 ring-indigo-400 whitespace-nowrap"
+                    >
+                      <span>Continuar e Ver Resultado</span>
+                      <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                    </button>
+                  );
+                }
+                return (
+                  <button
+                    type="button"
+                    onClick={handleGoToPending}
+                    className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs sm:text-sm rounded-xl shadow transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+                    title="Clique para ir até a pendência"
+                  >
+                    <span>Resolver Pendência ({pendingCount})</span>
+                    <span className="material-symbols-outlined text-[16px]">pending_actions</span>
+                  </button>
+                );
+              }
+
+              // Fallback de compatibilidade
+              if (selectedActivities.length > 0) {
+                return (
+                  <button
+                    type="button"
+                    onClick={onFinish}
+                    className="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-indigo-950/40 transition-all flex items-center justify-center gap-2 cursor-pointer ring-2 ring-indigo-400 whitespace-nowrap"
+                  >
+                    <span>Continuar e Ver Resultado</span>
+                    <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                  </button>
+                );
+              }
+
+              return (
+                <button
+                  type="button"
+                  disabled
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-800 text-slate-500 cursor-not-allowed text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 whitespace-nowrap"
+                >
+                  Inclua uma atividade
+                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </button>
+              );
+            })()}
+          </div>
+        </div>
       </div>
     </div>
   );

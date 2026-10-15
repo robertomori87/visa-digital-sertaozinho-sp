@@ -22,7 +22,6 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
   onReset,
   onOpenProtocolo,
 }) => {
-  const [isPrinting, setIsPrinting] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [downloadedPdfInfo, setDownloadedPdfInfo] = useState<{ url: string; filename: string } | null>(null);
@@ -106,137 +105,26 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
       }
     } catch (err) {
       console.error('Erro ao gerar PDF padronizado:', err);
-      setPdfError('Não foi possível gerar o PDF direto automaticamente. Você pode usar a opção "Imprimir" como alternativa.');
+      setPdfError('Não foi possível gerar o PDF direto automaticamente. Por favor, tente novamente.');
     } finally {
       setIsGeneratingPdf(false);
     }
   };
 
-  const handlePrint = () => {
-    setIsPrinting(true);
-    try {
-      const printDoc = document.getElementById('document-canvas');
-      if (printDoc) {
-        const printWindow = window.open('', '_blank', 'width=900,height=800');
-        if (printWindow) {
-          printWindow.document.write(`
-            <!DOCTYPE html>
-            <html lang="pt-BR">
-              <head>
-                <meta charset="utf-8" />
-                <title>Comprovante_Triagem_LTA_Sertaozinho</title>
-                <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-                <script src="https://cdn.tailwindcss.com"></script>
-                <style>
-                  @page {
-                    size: A4 portrait;
-                    margin: 12mm 15mm;
-                  }
-                  body {
-                    background: #ffffff !important;
-                    color: #0f172a !important;
-                    font-family: 'Inter', system-ui, sans-serif;
-                    -webkit-print-color-adjust: exact;
-                    print-color-adjust: exact;
-                    padding: 0;
-                    margin: 0;
-                  }
-                  .material-symbols-outlined {
-                    font-family: 'Material Symbols Outlined';
-                    font-weight: normal;
-                    font-style: normal;
-                    font-size: 20px;
-                    line-height: 1;
-                    display: inline-block;
-                    vertical-align: middle;
-                  }
-                </style>
-              </head>
-              <body class="p-4 sm:p-8 bg-white text-slate-900">
-                <div class="max-w-[800px] mx-auto">
-                  ${printDoc.innerHTML}
-                </div>
-                <script>
-                  window.onload = function() {
-                    setTimeout(function() {
-                      window.focus();
-                      window.print();
-                    }, 500);
-                  };
-                </script>
-              </body>
-            </html>
-          `);
-          printWindow.document.close();
-          setIsPrinting(false);
-          return;
-        }
-      }
-    } catch (e) {
-      console.warn('Dedicated print window blocked or failed, fallback to in-page print', e);
-    }
-
-    // Direct in-page print fallback
-    setTimeout(() => {
-      window.focus();
-      window.print();
-      setIsPrinting(false);
-    }, 100);
-  };
-
   return (
     <div className="w-full max-w-[840px] mx-auto flex flex-col gap-4 py-2 sm:py-4">
-      {/* Action Bar (Hidden during print) */}
+      {/* Header Informativo da Página */}
       <div
         id="action-buttons"
-        className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3.5 bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs"
+        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs"
       >
         <div>
           <h1 className="text-base sm:text-lg font-bold text-slate-900">
             Resultado da Consulta sobre Necessidade de LTA
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Consulta concluída. Baixe o comprovante em PDF abaixo.
+            Consulta concluída. Visualize o comprovante oficial abaixo e utilize a barra de navegação no rodapé para baixar o PDF.
           </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex-1 md:flex-none px-3.5 py-2 border border-slate-300 rounded-lg text-slate-700 bg-white font-semibold text-xs sm:text-sm hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-            Voltar
-          </button>
-          <button
-            type="button"
-            onClick={onReset}
-            className="flex-1 md:flex-none px-3.5 py-2 border border-slate-300 rounded-lg text-slate-700 bg-white font-semibold text-xs sm:text-sm hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[16px]">refresh</span>
-            Nova consulta
-          </button>
-          <button
-            type="button"
-            onClick={handlePrint}
-            disabled={isPrinting || isGeneratingPdf}
-            className="flex-1 md:flex-none px-3.5 py-2 border border-slate-300 rounded-lg text-slate-700 bg-white font-semibold text-xs sm:text-sm hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-            title="Abrir diálogo de impressão do navegador"
-          >
-            <span className="material-symbols-outlined text-[18px]">print</span>
-            Imprimir
-          </button>
-          <button
-            type="button"
-            onClick={handleDownloadPdf}
-            disabled={isGeneratingPdf || isPrinting}
-            className="w-full sm:w-auto px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-black text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ring-2 ring-emerald-500/40 disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              {isGeneratingPdf ? 'hourglass_top' : 'download'}
-            </span>
-            {isGeneratingPdf ? 'Gerando PDF Padronizado...' : 'Baixar Comprovante em PDF'}
-          </button>
         </div>
       </div>
 
@@ -273,30 +161,12 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
         </div>
       )}
 
-      {/* Aviso de encaminhamento do comprovante com botão direto */}
-      <div className="no-print bg-emerald-50/90 border border-emerald-300 rounded-xl p-3.5 sm:p-4 text-xs text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-        <div className="flex items-start sm:items-center gap-2.5">
-          <span className="material-symbols-outlined text-emerald-700 text-[22px] shrink-0">verified</span>
-          <div>
-            <p className="font-bold text-emerald-900 text-xs sm:text-sm">
-              Consulta Concluída com Sucesso!
-            </p>
-            <p className="text-emerald-800 text-[11px] sm:text-xs leading-snug">
-              Esta consulta é declaratória. Baixe o <strong>comprovante em PDF</strong> para anexá-lo junto ao seu processo.
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={handleDownloadPdf}
-          disabled={isGeneratingPdf || isPrinting}
-          className="w-full sm:w-auto px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm rounded-lg transition-colors flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-xs disabled:opacity-50"
-        >
-          <span className="material-symbols-outlined text-[18px]">
-            {isGeneratingPdf ? 'hourglass_top' : 'download'}
-          </span>
-          {isGeneratingPdf ? 'Gerando...' : 'Baixar PDF Agora'}
-        </button>
+      {/* Aviso de encaminhamento do comprovante (limpo e sem botão duplicado) */}
+      <div className="no-print bg-emerald-50/90 border border-emerald-300 rounded-xl p-3.5 sm:px-4 text-xs text-emerald-950 flex items-center gap-2.5 shadow-2xs">
+        <span className="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">verified</span>
+        <p className="flex-1 leading-snug">
+          <strong>Atenção:</strong> Esta consulta é declaratória. Baixe o comprovante em PDF na barra abaixo para anexá-lo junto ao seu processo.
+        </p>
       </div>
 
       {/* Document Canvas (Paper) */}
@@ -843,96 +713,45 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
         </div>
       </div>
 
-      {/* Ações pós-visualização do documento (no-print) */}
-      <div className="no-print mt-6 bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <h3 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-            <span className="material-symbols-outlined text-emerald-600 text-[20px]">description</span>
-            Próximo passo: Obter o Comprovante Oficial
-          </h3>
-          <p className="text-xs text-slate-600 mt-1">
-            Clique no botão ao lado para baixar o arquivo em PDF oficial da Vigilância Sanitária de Sertãozinho e anexá-lo ao seu processo.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-          <button
-            type="button"
-            onClick={onBack}
-            className="px-3.5 py-2.5 border border-slate-300 rounded-xl text-slate-700 bg-white font-bold text-xs sm:text-sm hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-            Voltar
-          </button>
-          <button
-            type="button"
-            onClick={handlePrint}
-            disabled={isPrinting || isGeneratingPdf}
-            className="px-4 py-2.5 border border-slate-300 rounded-xl text-slate-700 bg-white font-bold text-xs sm:text-sm hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-[18px]">print</span>
-            Imprimir
-          </button>
-          <button
-            type="button"
-            onClick={handleDownloadPdf}
-            disabled={isGeneratingPdf || isPrinting}
-            className="flex-1 sm:flex-none px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-black text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ring-2 ring-emerald-500/40 disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-[20px]">
-              {isGeneratingPdf ? 'hourglass_top' : 'download'}
-            </span>
-            {isGeneratingPdf ? 'Gerando PDF Padronizado...' : 'Baixar Comprovante em PDF'}
-          </button>
-        </div>
-      </div>
+      {/* ================= BARRA DE NAVEGAÇÃO SEMPRE VISÍVEL (ÚNICA DA PÁGINA 3) ================= */}
+      <div className="no-print sticky bottom-3 z-30 mt-6 bg-slate-900/95 backdrop-blur-md text-white p-3 sm:p-3.5 rounded-2xl shadow-xl border border-slate-700/80 animate-fadeIn">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-4">
+          {/* Lado Esquerdo: Ações de Retorno e Reinício */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex-1 sm:flex-none px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-slate-700 whitespace-nowrap"
+              title="Voltar para a seleção de atividades"
+            >
+              <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+              Voltar
+            </button>
+            <button
+              type="button"
+              onClick={onReset}
+              className="flex-1 sm:flex-none px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-slate-700 whitespace-nowrap"
+              title="Iniciar nova consulta do zero"
+            >
+              <span className="material-symbols-outlined text-[16px]">refresh</span>
+              Nova consulta
+            </button>
+          </div>
 
-      {/* Sticky Bottom Bar garantindo que o botão Baixar PDF nunca fique escondido */}
-      <div className="no-print sticky bottom-3 z-30 mt-6 bg-slate-900/95 backdrop-blur-md text-white p-3.5 sm:p-4 rounded-2xl shadow-xl border border-slate-700/80 flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn">
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-            isNoActivity ? 'bg-slate-600' : isLtaRequired ? 'bg-rose-600' : 'bg-emerald-600'
-          } text-white shadow-sm`}>
-            <span className="material-symbols-outlined text-[22px]">
-              {isNoActivity ? 'apartment' : isLtaRequired ? 'warning' : 'verified'}
-            </span>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm font-bold text-white">
-                Comprovante de Triagem de LTA
+          {/* Lado Direito: O ÚNICO Botão de Baixar Comprovante em PDF */}
+          <div className="shrink-0 flex items-center justify-end">
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={isGeneratingPdf}
+              className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-xl font-bold text-xs sm:text-sm shadow-lg shadow-emerald-950/40 transition-all flex items-center justify-center gap-2 cursor-pointer ring-2 ring-emerald-400 whitespace-nowrap disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {isGeneratingPdf ? 'hourglass_top' : 'download'}
               </span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                isNoActivity ? 'bg-slate-700 text-slate-200' : isLtaRequired ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-              }`}>
-                {isNoActivity ? 'Sem atividade' : isLtaRequired ? 'Exige LTA' : 'Não exige LTA'}
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-300 mt-0.5">
-              Baixe o documento em PDF para anexá-lo ao seu processo.
-            </p>
+              <span>{isGeneratingPdf ? 'Gerando PDF...' : 'Baixar Comprovante em PDF'}</span>
+            </button>
           </div>
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button
-            type="button"
-            onClick={handlePrint}
-            disabled={isPrinting || isGeneratingPdf}
-            className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-slate-700"
-          >
-            <span className="material-symbols-outlined text-[16px]">print</span>
-            Imprimir
-          </button>
-          <button
-            type="button"
-            onClick={handleDownloadPdf}
-            disabled={isGeneratingPdf || isPrinting}
-            className="flex-1 sm:flex-none px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-xl font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/40 transition-all flex items-center justify-center gap-2 cursor-pointer ring-2 ring-emerald-400"
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              {isGeneratingPdf ? 'hourglass_top' : 'download'}
-            </span>
-            {isGeneratingPdf ? 'Gerando...' : 'Baixar Comprovante em PDF'}
-          </button>
         </div>
       </div>
     </div>
