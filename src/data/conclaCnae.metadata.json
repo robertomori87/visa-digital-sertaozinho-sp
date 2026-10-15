@@ -1,0 +1,24 @@
+{
+  "fonte": "IBGE/CONCLA",
+  "fonteApi": "https://servicodados.ibge.gov.br/api/v2/cnae/subclasses",
+  "fonteXlsxReferencia": "https://concla.ibge.gov.br/images/concla/documentacao/CNAE_Subclasses_2_3_Estrutura_Detalhada.xlsx",
+  "versaoCnae": "CNAE 2.0 - Subclasses 2.3",
+  "versaoSubclasses": "2.3",
+  "dataImportacao": "2026-10-14T19:05:36.323Z",
+  "totalSubclasses": 1332,
+  "hashSha256Base": "038595afb5c047fe1f6aaf1dc2aa2a07c1e70fa6315106d130e19fb49e1cc2d3",
+  "hashSha256RawApi": "feb0cc74c1ab2f13f954f8bed36f50b55f3e442995dd79583100e85b13cb70e6",
+  "campos": [
+    "cnaeDigitos",
+    "cnaeFormatado",
+    "descricao",
+    "secao",
+    "divisao",
+    "grupo",
+    "classe",
+    "atividades",
+    "observacoes"
+  ],
+  "observacao": "Descritores de atividades (atividades[]) e notas explicativas (observacoes[]) obtidos via API oficial IBGE. O XLSX de estrutura detalhada CNAE-Subclasses 2.3 foi utilizado como referencia de versao, mas nao contem os descritores de atividades.",
+  "vinculacaoCvs": "A vinculacao com a CVS 01 ocorre exclusivamente pelo cnaeDigitos (7 digitos normalizados). Nenhuma equivalencia automatica entre descritores CONCLA e compreensoes CVS e estabelecida."
+}

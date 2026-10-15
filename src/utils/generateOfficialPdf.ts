@@ -4,6 +4,7 @@ import {
   isActivityLtaRequired,
   formatNaoCompreendeItems,
 } from '../data/cvsLtaService';
+import { formatDescritorForDisplay } from '../data/conclaService';
 import {
   PORTARIA_CVS_LABEL,
   PORTARIA_CVS_PUBLICACAO,
@@ -57,6 +58,28 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
   const ltaExemptList = activities.filter((act) => !isActivityLtaRequired(act));
   const quadro9RequiredDocs = isLtaRequired ? getAllQuadro9ItemsFromActivities(ltaRequiredList) : [];
 
+  // FASE 3: Agrupa atividades por CNAE para exibir descritores e compreensões conjuntamente
+  interface CnaeGroup {
+    cnae: string;
+    descricaoCnae: string;
+    descritoresSelecionados: string[];
+    atividades: SelectedCvsActivity[];
+  }
+  const groupedByCnae: CnaeGroup[] = [];
+  for (const act of activities) {
+    const existing = groupedByCnae.find((g) => g.cnae === act.cnae);
+    if (existing) {
+      existing.atividades.push(act);
+    } else {
+      groupedByCnae.push({
+        cnae: act.cnae,
+        descricaoCnae: act.descricaoCnae,
+        descritoresSelecionados: act.descritoresSelecionados || [],
+        atividades: [act],
+      });
+    }
+  }
+
   // Helper for page break checks
   const ensureSpace = (neededHeight: number) => {
     if (y + neededHeight > maxY) {
@@ -67,7 +90,7 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
       doc.setFontSize(8);
       doc.setTextColor(120, 130, 145);
       doc.text(
-        'Prefeitura Municipal de Sertãozinho-SP • Vigilância Sanitária • Comprovante de Triagem LTA',
+        'Prefeitura Municipal de Sertãozinho-SP • Vigilância Sanitária • Comprovante de Consulta sobre Necessidade de LTA',
         marginX,
         y
       );
@@ -115,7 +138,7 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
   y += 4.5;
   doc.setFontSize(7.5);
   doc.setTextColor(100, 116, 139);
-  doc.text('Ferramenta Eletrônica de Triagem de Necessidade de LTA', marginX, y);
+  doc.text('Ferramenta de Consulta sobre a Necessidade de LTA', marginX, y);
 
   y += 4;
   doc.setDrawColor(203, 213, 225);
@@ -127,7 +150,7 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(15, 23, 42);
-  doc.text('COMPROVANTE DE TRIAGEM DE LTA', pageWidth / 2, y, { align: 'center' });
+  doc.text('COMPROVANTE DE CONSULTA SOBRE A NECESSIDADE DE LTA', pageWidth / 2, y, { align: 'center' });
 
   y += 4.5;
   doc.setFont('helvetica', 'normal');
@@ -171,7 +194,7 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
   } else if (isLtaRequired) {
     bannerTitle = 'LTA NECESSÁRIO';
     bannerDesc =
-      'De acordo com a informação declarada pelo requerente, a atividade informada exige aprovação de projeto físico-funcional (LTA) perante a Vigilância Sanitária de Sertãozinho-SP (Aprova Online) antes do início de obras e da concessão da licença de funcionamento sanitária.';
+      'De acordo com as atividades e condições declaradas pelo requerente, alguma compreensão sanitária aplicável exige a apresentação do Laudo Técnico de Avaliação (LTA). A conclusão decorre exclusivamente dos critérios documentais previstos na Portaria CVS aplicável.';
     bannerBgR = 255;
     bannerBgG = 241;
     bannerBgB = 242;
@@ -182,8 +205,8 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
     bannerTextG = 18;
     bannerTextB = 57;
   } else {
-    bannerTitle = 'LTA NÃO NECESSÁRIO PARA A ATIVIDADE INFORMADA';
-    bannerDesc = `De acordo com a informação declarada pelo requerente, a atividade informada está dispensada de aprovação de Laudo Técnico de Avaliação (LTA), conforme a regulamentação da ${PORTARIA_CVS_LABEL}. O licenciamento sanitário segue os trâmites regulares.`;
+    bannerTitle = 'LTA NÃO NECESSÁRIO';
+    bannerDesc = `De acordo com as atividades e condições declaradas pelo requerente, nenhuma das compreensões sanitárias aplicáveis exige a apresentação do Laudo Técnico de Avaliação (LTA), conforme a ${PORTARIA_CVS_LABEL}. A não exigência de LTA não implica a dispensa de licenciamento sanitário, sem prejuízo do cumprimento de outras obrigações legais aplicáveis.`;
     bannerBgR = 236;
     bannerBgG = 253;
     bannerBgB = 245;
@@ -216,7 +239,7 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.setTextColor(bannerTextR, bannerTextG, bannerTextB);
-  doc.text('RESULTADO DA TRIAGEM', marginX + bannerPadding + 8, y + bannerPadding + 3);
+  doc.text('RESULTADO DA CONSULTA', marginX + bannerPadding + 8, y + bannerPadding + 3);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
@@ -372,49 +395,108 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
     doc.text(noActLines, marginX + 4, y + 10);
     y += 36;
   } else {
-    // List of CNAEs
-    for (const act of activities) {
-      const actNeedsLta = isActivityLtaRequired(act);
-      const excItems = formatNaoCompreendeItems(act.naoCompreende);
+    // FASE 3: Lista de CNAEs agrupados, com descritores e compreensões sanitárias
+    for (const group of groupedByCnae) {
+      const firstAct = group.atividades[0];
+      const isNenhumaAplicavel =
+        firstAct.agrupamento?.includes('NENHUMA COMPREENSÃO APLICÁVEL') ||
+        firstAct.compreensao.includes('Nenhuma compreensão sanitária aplicável');
+      const isNaoConstaCvs =
+        firstAct.agrupamento?.includes('NÃO CONSTANTE NA TABELA CVS 01') ||
+        firstAct.compreensao.includes('não constante na tabela');
+      const groupHasLta = group.atividades.some((a) => isActivityLtaRequired(a));
 
-      // 1. Prepare Title
+      // 1. Cabeçalho do CNAE: código + denominação
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8.5);
-      const descLines = doc.splitTextToSize(`CNAE ${act.cnae} - ${act.descricaoCnae}`, contentWidth - 45);
-      const titleHeight = Math.max(descLines.length * 3.6, 5);
+      const titleText = `CNAE ${group.cnae} — ${group.descricaoCnae}`;
+      const titleLines = doc.splitTextToSize(titleText, contentWidth - 42);
+      const titleHeight = Math.max(titleLines.length * 3.6, 5);
 
-      // 2. Prepare Compreensão Oficial (Destaque Principal)
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      const compInnerWidth = contentWidth - 14;
-      const compLines = doc.splitTextToSize(act.compreensao || '-', compInnerWidth);
-      const compBoxHeight = 5 + compLines.length * 3.2 + 2;
+      // 2. Descritores CONCLA selecionados
+      let descritoresHeight = 0;
+      let descritoresLines: string[] = [];
+      if (group.descritoresSelecionados.length > 0) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        const descText = group.descritoresSelecionados.map(formatDescritorForDisplay).join(' • ');
+        descritoresLines = doc.splitTextToSize(descText, contentWidth - 14);
+        descritoresHeight = 3.5 + descritoresLines.length * 3 + 1;
+      }
 
-      // 3. Prepare Exceções / Não Compreende (Secundário, sutil e com quebra de linha rigorosa)
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      const excInnerWidth = contentWidth - 14;
-      const preparedExcItems: string[][] = excItems.map((item) =>
-        doc.splitTextToSize(`• ${item}`, excInnerWidth - 4)
-      );
-      const totalExcLines = preparedExcItems.reduce((acc, lines) => acc + lines.length, 0);
-      const excBoxHeight =
-        excItems.length > 0
-          ? 4.5 + totalExcLines * 2.8 + (excItems.length > 1 ? (excItems.length - 1) * 0.6 : 0) + 2
-          : 0;
+      // 3. Compreensões sanitárias selecionadas (ou caso especial)
+      let compsHeight = 0;
+      const compRender: Array<{
+        lines: string[];
+        excItems: string[];
+        excLines: string[][];
+        actNeedsLta: boolean;
+        hasDoc52: boolean;
+        paginaCvs: string | number | undefined;
+      }> = [];
 
-      // Card Total Height
-      const actCardHeight =
-        4 + // top padding
-        titleHeight + 2.5 +
-        compBoxHeight + // caixa destacada de compreensão
-        (excItems.length > 0 ? 2 + excBoxHeight : 0) + // caixa secundária neutra de exceções
-        3; // bottom padding
+      if (!isNenhumaAplicavel && !isNaoConstaCvs) {
+        for (const act of group.atividades) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7.5);
+          const compInnerWidth = contentWidth - 14;
+          const cLines = doc.splitTextToSize(act.compreensao || '-', compInnerWidth);
+          const excItems = formatNaoCompreendeItems(act.naoCompreende);
+          doc.setFontSize(6.5);
+          const preparedExc: string[][] = excItems.map((item) =>
+            doc.splitTextToSize(`• ${item}`, compInnerWidth - 4)
+          );
+          const totalExcLines = preparedExc.reduce((acc, l) => acc + l.length, 0);
+          const excBoxH =
+            excItems.length > 0
+              ? 4.5 + totalExcLines * 2.8 + (excItems.length > 1 ? (excItems.length - 1) * 0.6 : 0) + 2
+              : 0;
+          const badgeH = 4.5;
+          const cBoxH = 5 + cLines.length * 3.2 + 2 + badgeH + 1.5;
+          compsHeight += cBoxH + (excItems.length > 0 ? excBoxH + 2 : 0) + 1.5;
+          compRender.push({
+            lines: cLines,
+            excItems,
+            excLines: preparedExc,
+            actNeedsLta: isActivityLtaRequired(act),
+            hasDoc52: act.documentosInspecao?.includes('52') || false,
+            paginaCvs: act.paginaCvs,
+          });
+        }
+      } else {
+        // Caso especial: nenhuma compreensão aplicável ou não consta na CVS
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        const compInnerWidth = contentWidth - 14;
+        const cLines = doc.splitTextToSize(firstAct.compreensao || '-', compInnerWidth);
+        const badgeH = 4.5;
+        compsHeight = 5 + cLines.length * 3.2 + 2 + badgeH + 1.5;
+        compRender.push({
+          lines: cLines,
+          excItems: [],
+          excLines: [],
+          actNeedsLta: false,
+          hasDoc52: false,
+          paginaCvs: undefined,
+        });
+      }
 
-      ensureSpace(actCardHeight + 3);
+      // Altura total do card do CNAE
+      const cardHeight =
+        4 +
+        titleHeight +
+        2 +
+        (descritoresHeight > 0 ? descritoresHeight + 2 : 0) +
+        compsHeight +
+        3;
 
-      // Draw Activity Card Border & Background
-      if (actNeedsLta) {
+      ensureSpace(cardHeight + 3);
+
+      // Cor do card
+      if (isNaoConstaCvs || isNenhumaAplicavel) {
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(203, 213, 225);
+      } else if (groupHasLta) {
         doc.setFillColor(255, 245, 245);
         doc.setDrawColor(244, 63, 94);
       } else {
@@ -422,83 +504,176 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
         doc.setDrawColor(16, 185, 129);
       }
       doc.setLineWidth(0.4);
-      doc.roundedRect(marginX, y, contentWidth, actCardHeight, 1.5, 1.5, 'FD');
+      doc.roundedRect(marginX, y, contentWidth, cardHeight, 1.5, 1.5, 'FD');
 
       let actY = y + 4;
 
-      // Badge LTA
-      if (actNeedsLta) {
+      // Badge de status do CNAE (canto superior direito)
+      let badgeText = '';
+      if (isNaoConstaCvs) badgeText = 'Não consta na CVS 01';
+      else if (isNenhumaAplicavel) badgeText = 'Nenhuma compreensão aplicável';
+      else if (groupHasLta) badgeText = 'Exige LTA';
+      else badgeText = 'Não exige LTA';
+
+      const badgeUpper = badgeText.toUpperCase();
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6);
+      const badgeTextWidth = doc.getStringUnitWidth(badgeUpper) * 6 * (25.4 / 72);
+      const badgeWidth = Math.max(28, badgeTextWidth + 8);
+      if (isNaoConstaCvs || isNenhumaAplicavel) {
+        doc.setFillColor(148, 163, 184);
+      } else if (groupHasLta) {
         doc.setFillColor(225, 29, 72);
-        doc.roundedRect(marginX + contentWidth - 32, actY - 1, 28, 4.5, 1, 1, 'F');
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6.5);
-        doc.setTextColor(255, 255, 255);
-        doc.text('PRECISA DE LTA', marginX + contentWidth - 18, actY + 2.2, { align: 'center' });
       } else {
         doc.setFillColor(5, 150, 105);
-        doc.roundedRect(marginX + contentWidth - 36, actY - 1, 32, 4.5, 1, 1, 'F');
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6.5);
-        doc.setTextColor(255, 255, 255);
-        doc.text('NÃO PRECISA DE LTA', marginX + contentWidth - 20, actY + 2.2, { align: 'center' });
       }
+      doc.roundedRect(marginX + contentWidth - badgeWidth - 2, actY - 1, badgeWidth, 4.5, 1, 1, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6);
+      doc.setTextColor(255, 255, 255);
+      doc.text(badgeUpper, marginX + contentWidth - badgeWidth / 2 - 2, actY + 2.2, {
+        align: 'center',
+      });
 
-      // CNAE Title
+      // Título do CNAE
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8.5);
       doc.setTextColor(15, 23, 42);
-      doc.text(descLines, marginX + 4, actY);
-      actY += titleHeight + 2.5;
+      doc.text(titleLines, marginX + 4, actY);
+      actY += titleHeight + 2;
 
-      // 1. Bloco de Compreensão Oficial (Destaque Principal com fundo branco e contraste nítido)
-      doc.setFillColor(255, 255, 255);
-      if (actNeedsLta) {
-        doc.setDrawColor(254, 205, 211); // rose-200
-      } else {
-        doc.setDrawColor(167, 243, 208); // emerald-200
-      }
-      doc.setLineWidth(0.3);
-      doc.roundedRect(marginX + 3.5, actY, contentWidth - 7, compBoxHeight, 1, 1, 'FD');
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.8);
-      if (actNeedsLta) {
-        doc.setTextColor(159, 18, 57); // rose-800
-      } else {
-        doc.setTextColor(6, 95, 70); // emerald-800
-      }
-      doc.text('COMPREENSÃO OFICIAL DA ATIVIDADE (CVS 01):', marginX + 6, actY + 3.5);
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.setTextColor(15, 23, 42);
-      doc.text(compLines, marginX + 6, actY + 6.8);
-      actY += compBoxHeight + 2;
-
-      // 2. Bloco "Não compreende" (Secundário, tom neutro discreto, sem amarelo forte e com quebra de linhas perfeita)
-      if (excItems.length > 0) {
-        doc.setFillColor(248, 250, 252); // slate-50 neutro
-        doc.setDrawColor(226, 232, 240); // slate-200
+      // Descritores CONCLA
+      if (descritoresHeight > 0) {
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(0.2);
-        doc.roundedRect(marginX + 3.5, actY, contentWidth - 7, excBoxHeight, 1, 1, 'FD');
+        doc.roundedRect(marginX + 3.5, actY, contentWidth - 7, descritoresHeight, 1, 1, 'FD');
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(6.2);
-        doc.setTextColor(100, 116, 139); // slate-500 neutro
-        doc.text('Atividades não compreendidas (excluídas deste enquadramento):', marginX + 6, actY + 3.2);
+        doc.setTextColor(100, 116, 139);
+        doc.text('DESCRIÇÕES ECONÔMICAS SELECIONADAS (CONCLA):', marginX + 6, actY + 3);
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.5);
-        doc.setTextColor(51, 65, 85); // slate-700
-        let currentExcY = actY + 6.2;
-        for (const lines of preparedExcItems) {
-          doc.text(lines, marginX + 6, currentExcY);
-          currentExcY += lines.length * 2.8 + 0.6;
-        }
-        actY += excBoxHeight + 2;
+        doc.setFontSize(7);
+        doc.setTextColor(51, 65, 85);
+        doc.text(descritoresLines, marginX + 6, actY + 6.2);
+        actY += descritoresHeight + 2;
       }
 
-      y += actCardHeight + 3.5;
+      // Compreensões sanitárias
+      if (!isNenhumaAplicavel && !isNaoConstaCvs) {
+        for (let ci = 0; ci < compRender.length; ci++) {
+          const c = compRender[ci];
+          const compInnerWidth = contentWidth - 14;
+          const cBoxH = 5 + c.lines.length * 3.2 + 2 + 4.5 + 1.5;
+          const excBoxH =
+            c.excItems.length > 0
+              ? 4.5 +
+                c.excLines.reduce((acc, l) => acc + l.length, 0) * 2.8 +
+                (c.excItems.length > 1 ? (c.excItems.length - 1) * 0.6 : 0) +
+                2
+              : 0;
+
+          // Caixa da compreensão
+          doc.setFillColor(255, 255, 255);
+          doc.setDrawColor(c.actNeedsLta ? 254 : 167, c.actNeedsLta ? 205 : 243, c.actNeedsLta ? 211 : 208);
+          doc.setLineWidth(0.3);
+          doc.roundedRect(marginX + 3.5, actY, contentWidth - 7, cBoxH, 1, 1, 'FD');
+
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(6.8);
+          doc.setTextColor(c.actNeedsLta ? 159 : 6, c.actNeedsLta ? 18 : 95, c.actNeedsLta ? 57 : 70);
+          doc.text('COMPREENSÃO SANITÁRIA (CVS 01):', marginX + 6, actY + 3.5);
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7.5);
+          doc.setTextColor(15, 23, 42);
+          doc.text(c.lines, marginX + 6, actY + 6.8);
+
+          // Página CVS
+          if (c.paginaCvs && String(c.paginaCvs) !== 'N/A') {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(6.2);
+            doc.setTextColor(100, 116, 139);
+            doc.text(`CVS p. ${c.paginaCvs}`, marginX + contentWidth - 6, actY + 3.5, { align: 'right' });
+          }
+
+          // Badge Exige/Não exige LTA + Documento 52
+          let badgeX = marginX + 6;
+          doc.setFillColor(c.actNeedsLta ? 225 : 5, c.actNeedsLta ? 29 : 150, c.actNeedsLta ? 72 : 105);
+          doc.roundedRect(badgeX, actY + cBoxH - 5.5, 26, 3.8, 0.8, 0.8, 'F');
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(5.8);
+          doc.setTextColor(255, 255, 255);
+          doc.text(c.actNeedsLta ? 'EXIGE LTA' : 'NÃO EXIGE LTA', badgeX + 13, actY + cBoxH - 3, {
+            align: 'center',
+          });
+
+          if (c.actNeedsLta && c.hasDoc52) {
+            badgeX += 30;
+            doc.setFillColor(217, 119, 6);
+            doc.roundedRect(badgeX, actY + cBoxH - 5.5, 42, 3.8, 0.8, 0.8, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(5.8);
+            doc.setTextColor(255, 255, 255);
+            doc.text('DOCUMENTO 52 PRESENTE', badgeX + 21, actY + cBoxH - 3, { align: 'center' });
+          }
+
+          actY += cBoxH + 1.5;
+
+          // Caixa "Não compreende"
+          if (c.excItems.length > 0) {
+            doc.setFillColor(248, 250, 252);
+            doc.setDrawColor(226, 232, 240);
+            doc.setLineWidth(0.2);
+            doc.roundedRect(marginX + 3.5, actY, contentWidth - 7, excBoxH, 1, 1, 'FD');
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(6.2);
+            doc.setTextColor(100, 116, 139);
+            doc.text('Atividades não compreendidas (excluídas deste enquadramento):', marginX + 6, actY + 3.2);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(6.5);
+            doc.setTextColor(51, 65, 85);
+            let currentExcY = actY + 6.2;
+            for (const lines of c.excLines) {
+              doc.text(lines, marginX + 6, currentExcY);
+              currentExcY += lines.length * 2.8 + 0.6;
+            }
+            actY += excBoxH + 2;
+          }
+        }
+      } else {
+        // Caso especial: texto único (nenhuma aplicável / não consta)
+        const c = compRender[0];
+        const badgeH = 4.5;
+        const cBoxH = 5 + c.lines.length * 3.2 + 2 + badgeH + 1.5;
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(marginX + 3.5, actY, contentWidth - 7, cBoxH, 1, 1, 'FD');
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(51, 65, 85);
+        doc.text(c.lines, marginX + 6, actY + 6.8);
+
+        // Badge "Não exige LTA" (atividades não constantes ou sem compreensão aplicável)
+        const badgeX = marginX + 6;
+        doc.setFillColor(5, 150, 105);
+        doc.roundedRect(badgeX, actY + cBoxH - 5.5, 28, 3.8, 0.8, 0.8, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(5.8);
+        doc.setTextColor(255, 255, 255);
+        doc.text('NÃO EXIGE LTA', badgeX + 14, actY + cBoxH - 3, {
+          align: 'center',
+        });
+        actY += cBoxH;
+      }
+
+      y += cardHeight + 3.5;
     }
   }
 
@@ -654,21 +829,21 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
 
   const obsTexts = [
     {
-      title: 'Responsabilidade:',
-      body: 'O enquadramento baseia-se exclusivamente nas informações e atividades declaradas pelo requerente nesta ferramenta.',
+      title: 'Responsabilidade pelas informações:',
+      body: 'As informações relativas aos códigos CNAE, às atividades efetivamente exercidas e às compreensões sanitárias selecionadas são de responsabilidade do requerente. O resultado desta consulta decorre exclusivamente das informações declaradas e dos critérios documentais previstos na Portaria CVS aplicável. As declarações aqui constantes não foram conferidas ou aprovadas individualmente pela Vigilância Sanitária Municipal.',
     },
     {
-      title: 'Natureza do Documento:',
-      body: 'Este comprovante de triagem eletrônica prévia não substitui o Laudo Técnico de Avaliação (LTA) nem a aprovação de projeto físico-funcional.',
+      title: 'Natureza do documento:',
+      body: 'Este comprovante não constitui Laudo Técnico de Avaliação (LTA), licença sanitária, autorização administrativa, certidão de regularidade, aprovação de projeto ou manifestação definitiva da Vigilância Sanitária Municipal.',
       highlight: true,
     },
     {
-      title: 'Protocolo no Município:',
-      body: 'Para comprovar este enquadramento, anexe este arquivo PDF ao processo no sistema Aprova Online da Prefeitura Municipal de Sertãozinho-SP.',
+      title: 'Dispensa de LTA:',
+      body: 'A não exigência de LTA não implica a dispensa de licenciamento sanitário, sem prejuízo do cumprimento de outras obrigações legais aplicáveis, incluindo as Boas Práticas Sanitárias.',
     },
     {
-      title: 'Regularidade Sanitária:',
-      body: 'A dispensa de LTA não desobriga o cumprimento integral das Boas Práticas Sanitárias e a obtenção da Licença de Funcionamento regular.',
+      title: 'Fundamentação:',
+      body: 'A decisão sobre a necessidade de LTA é derivada exclusivamente dos documentos associados à compreensão sanitária na base normativa vigente, não sendo utilizada a consulta a dados antigos ou listas personalizadas.',
     },
   ];
 
@@ -707,6 +882,7 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
   // UNIFORM FOOTER ON ALL PAGES
   // ----------------------------------------------------
   const totalPages = doc.getNumberOfPages();
+  const normaText = `Norma: ${result.normativeVersion || 'Portaria CVS n° 1/2024 — atualização em 13/05/2026'}`;
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     doc.setFont('helvetica', 'normal');
@@ -714,14 +890,23 @@ export function generateOfficialPdf(result: VerificationResult): PdfGenerationRe
     doc.setTextColor(100, 116, 139);
     doc.setDrawColor(203, 213, 225);
     doc.setLineWidth(0.2);
-    doc.line(marginX, 288, marginX + contentWidth, 288);
+    doc.line(marginX, 285, marginX + contentWidth, 285);
 
     doc.text(
-      'Prefeitura Municipal de Sertãozinho-SP • Vigilância Sanitária Municipal • Dúvidas: visastsertaozinho@gmail.com',
+      'Prefeitura Municipal de Sertãozinho-SP • Vigilância Sanitária Municipal',
       marginX,
-      292
+      289
     );
-    doc.text(`Página ${i} de ${totalPages}`, marginX + contentWidth, 292, { align: 'right' });
+    doc.text(normaText, marginX, 293);
+    doc.text(`Página ${i} de ${totalPages}`, marginX + contentWidth, 289, { align: 'right' });
+
+    // Hash SHA-256 discreto (somente na última página)
+    if (i === totalPages && result.normativeHash) {
+      doc.setFontSize(5.5);
+      doc.setTextColor(148, 163, 184);
+      const hashText = `SHA-256 base normativa: ${result.normativeHash}`;
+      doc.text(hashText, marginX, 297);
+    }
   }
 
   // Generate safe filename

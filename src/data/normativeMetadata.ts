@@ -1,7 +1,7 @@
-export const PORTARIA_CVS_NUMERO = 'Portaria CVS 01';
+export const PORTARIA_CVS_NUMERO = 'Portaria CVS 1';
 export const PORTARIA_CVS_ANO = '2024';
 export const PORTARIA_CVS_PUBLICACAO = '13/05/2026';
 export const PORTARIA_CVS_VERSAO = '2026-05-13';
 export const PORTARIA_CVS_LABEL = `${PORTARIA_CVS_NUMERO}/${PORTARIA_CVS_ANO}`;
 export const PORTARIA_CVS_RASTREABILIDADE = `${PORTARIA_CVS_LABEL} - publicacao em ${PORTARIA_CVS_PUBLICACAO}`;
-export const PORTARIA_CVS_FONTE_DADOS = '26-05-13_LISTA CVS 01.xlsx';
+export const PORTARIA_CVS_FONTE_DADOS = 'E_PT_CVS_1-050124.pdf (Anexo I, paginas 32 a 84)';

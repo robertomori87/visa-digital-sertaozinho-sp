@@ -1,0 +1,38 @@
+{
+  "portaria": {
+    "numero": "Portaria CVS 1",
+    "ano": "2024",
+    "publicacao": "13/05/2026",
+    "versao": "2026-05-13",
+    "label": "Portaria CVS 1/2024"
+  },
+  "fonteDados": {
+    "tipo": "PDF oficial",
+    "arquivo": "E_PT_CVS_1-050124.pdf",
+    "anexo": "Anexo I",
+    "paginasReferencia": "32 a 84",
+    "observacao": "Base consolidada a partir do PDF oficial da Portaria CVS 1/2024, confrontada com as planilhas LISTA CVS 01.xlsx e 26-05-13_LISTA CVS 01.xlsx. O PDF prevaleceu em caso de divergencia."
+  },
+  "estatisticas": {
+    "totalRegistros": 733,
+    "cnaesUnicos": 201,
+    "exigeLta": 451,
+    "dispensadoLta": 282,
+    "cnaesMistos": 11,
+    "riscoIIIAlto": 564,
+    "riscoIIMedio": 169
+  },
+  "integridade": {
+    "sha256": "a4019db9288155894ff1bcb01a5b7d7f4183698b97632d3a12c7b7c66cdef0fd",
+    "dataGeracao": "2026-10-14",
+    "idsPreservados": 705,
+    "idsNovos": 28,
+    "registrosRemovidos": 27,
+    "maxId": 760
+  },
+  "backupAnterior": {
+    "arquivo": "cvsLta.legacy-2024.json",
+    "totalRegistros": 732,
+    "observacao": "Copia integral da base anterior a substituicao, preservada para auditoria."
+  }
+}

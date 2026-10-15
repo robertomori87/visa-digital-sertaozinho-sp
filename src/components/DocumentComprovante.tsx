@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { VerificationResult } from '../types';
+import React, { useState, useMemo } from 'react';
+import { VerificationResult, SelectedCvsActivity } from '../types';
 import { isActivityLtaRequired, formatNaoCompreendeItems } from '../data/cvsLtaService';
+import { formatDescritorForDisplay } from '../data/conclaService';
 import {
   PORTARIA_CVS_LABEL,
   PORTARIA_CVS_PUBLICACAO,
@@ -49,6 +50,29 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
   const ltaExemptList = activities.filter((act) => !isActivityLtaRequired(act));
   const quadro9RequiredDocs = isLtaRequired ? getAllQuadro9ItemsFromActivities(ltaRequiredList) : [];
   const [expandedExclusoes, setExpandedExclusoes] = useState<Record<string, boolean>>({});
+
+  // FASE 3: Agrupa atividades por CNAE para exibir descritores e compreensões conjuntamente
+  const groupedByCnae = useMemo(() => {
+    const map = new Map<string, {
+      cnae: string;
+      descricaoCnae: string;
+      descritoresSelecionados: string[];
+      atividades: SelectedCvsActivity[];
+    }>();
+    for (const act of activities) {
+      const key = act.cnae;
+      if (!map.has(key)) {
+        map.set(key, {
+          cnae: act.cnae,
+          descricaoCnae: act.descricaoCnae,
+          descritoresSelecionados: act.descritoresSelecionados || [],
+          atividades: [],
+        });
+      }
+      map.get(key)!.atividades.push(act);
+    }
+    return Array.from(map.values());
+  }, [activities]);
 
   const handleDownloadPdf = () => {
     setIsGeneratingPdf(true);
@@ -100,7 +124,7 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
             <html lang="pt-BR">
               <head>
                 <meta charset="utf-8" />
-                <title>Comprovante_Triagem_LTA_Sertaozinho</title>
+                <title>Comprovante_Consulta_Necessidade_LTA_Sertaozinho</title>
                 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
                 <script src="https://cdn.tailwindcss.com"></script>
                 <style>
@@ -169,10 +193,10 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
       >
         <div>
           <h1 className="text-base sm:text-lg font-bold text-slate-900">
-            Resultado da Triagem de LTA
+            Resultado da Consulta sobre Necessidade de LTA
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Consulta concluída. Baixe o PDF padronizado abaixo para anexar ao Aprova Online.
+            Consulta concluída. Baixe o comprovante em PDF abaixo.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
@@ -249,11 +273,11 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
         </div>
       )}
 
-      {/* Aviso de Protocolo do PDF no Aprova Online */}
+      {/* Aviso de encaminhamento do comprovante */}
       <div className="no-print bg-amber-50/90 border border-amber-300/80 rounded-xl p-3 sm:px-4 text-xs text-amber-950 flex items-center gap-2.5 shadow-2xs">
         <span className="material-symbols-outlined text-amber-700 text-[20px] shrink-0">info</span>
         <p className="flex-1 leading-snug">
-          <strong>Atenção:</strong> Esta triagem é declaratória. Baixe o <strong>comprovante em PDF</strong> acima e anexe-o ao seu processo no sistema <strong>Aprova Online</strong> da Prefeitura Municipal de Sertãozinho-SP.
+          <strong>Atenção:</strong> Esta consulta é declaratória. Baixe o <strong>comprovante em PDF</strong> acima para apresentá-lo junto ao seu processo de licenciamento sanitário.
         </p>
       </div>
 
@@ -279,7 +303,7 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
               Secretaria Municipal de Saúde • Vigilância Sanitária Municipal
             </p>
             <p className="text-[11px] text-slate-500 font-medium">
-              Ferramenta Eletrônica de Triagem de Necessidade de LTA
+              Ferramenta de Consulta sobre Necessidade de LTA
             </p>
           </div>
 
@@ -296,14 +320,14 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
         {/* Title */}
         <div className="text-center mb-5">
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight uppercase">
-            Comprovante de Triagem de LTA
+            Comprovante de Consulta sobre a Necessidade de LTA
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 mt-1 font-medium">
             Resultado da consulta de enquadramento conforme a {PORTARIA_CVS_LABEL}
           </p>
         </div>
 
-        {/* RESULTADO DA TRIAGEM (Destaque Imediato no Topo do Comprovante) */}
+        {/* RESULTADO DA CONSULTA (Destaque Imediato no Topo do Comprovante) */}
         <div
           className={`p-4 sm:p-5 rounded-xl mb-6 border-2 flex items-start gap-3.5 ${
             isNoActivity
@@ -318,21 +342,21 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
           </span>
           <div className="flex-1 min-w-0">
             <span className="text-[10px] font-bold uppercase tracking-wider block opacity-75">
-              RESULTADO DA TRIAGEM
+              RESULTADO DA CONSULTA
             </span>
             <h2 className="text-base sm:text-lg font-black tracking-tight uppercase mt-0.5">
               {isNoActivity
                 ? 'SEM ATIVIDADE PARA ENQUADRAMENTO'
                 : isLtaRequired
                 ? 'LTA NECESSÁRIO'
-                : 'LTA NÃO NECESSÁRIO PARA A ATIVIDADE INFORMADA'}
+                : 'LTA NÃO NECESSÁRIO'}
             </h2>
             <p className="text-xs sm:text-sm mt-1 leading-relaxed opacity-90">
               {isNoActivity
                 ? 'De acordo com a informação declarada pelo requerente, não há atividade econômica sanitária vinculada ao imóvel nesta consulta. Não há exigência de LTA a ser determinada neste momento. A exigência de LTA dependerá da atividade que vier a ser efetivamente implantada.'
                 : isLtaRequired
-                ? 'De acordo com a informação declarada pelo requerente, a atividade informada exige aprovação de projeto físico-funcional (LTA) perante a Vigilância Sanitária de Sertãozinho-SP (Aprova Online) antes do início de obras e da concessão da licença de funcionamento sanitária.'
-                : `De acordo com a informação declarada pelo requerente, a atividade informada está dispensada de aprovação de Laudo Técnico de Avaliação (LTA), conforme a regulamentação da ${PORTARIA_CVS_LABEL}. O licenciamento sanitário segue os trâmites regulares.`}
+                ? 'De acordo com as informações declaradas pelo requerente e os critérios documentais previstos na Portaria CVS aplicável, pelo menos uma das atividades declaradas exige a apresentação do Laudo Técnico de Avaliação (LTA) perante a Vigilância Sanitária.'
+                : 'De acordo com as informações declaradas pelo requerente e os critérios documentais previstos na Portaria CVS aplicável, nenhuma das atividades declaradas exige a apresentação do Laudo Técnico de Avaliação (LTA). A não exigência de LTA não implica a dispensa de licenciamento sanitário, sem prejuízo do cumprimento de outras obrigações legais aplicáveis.'}
             </p>
           </div>
         </div>
@@ -435,14 +459,14 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
           </div>
         </div>
 
-        {/* BLOCO 2: DADOS DECLARADOS */}
+        {/* BLOCO 2: ATIVIDADES E ENQUADRAMENTO SANITÁRIO DECLARADOS */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-2 pb-1 border-b border-slate-200">
             <span className="w-5 h-5 rounded bg-indigo-700 text-white font-mono font-bold text-[11px] flex items-center justify-center">
               2
             </span>
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-              Dados Declarados
+              Atividades e Enquadramento Sanitário Declarados
             </h3>
           </div>
 
@@ -462,160 +486,189 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
             <div className="border border-slate-200 rounded-xl overflow-hidden">
               <div className="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                  Atividades Econômicas e Compreensões Analisadas ({activities.length})
+                  CNAEs Declarados ({groupedByCnae.length})
                 </span>
                 <div className="flex items-center gap-2 text-xs font-semibold">
-                  <span className="text-rose-700 font-bold">{ltaRequiredList.length} com LTA</span>
+                  <span className="text-rose-700 font-bold">{ltaRequiredList.length} com exigência de LTA</span>
                   <span className="text-slate-400">•</span>
-                  <span className="text-emerald-700 font-bold">{ltaExemptList.length} isenta(s)</span>
+                  <span className="text-emerald-700 font-bold">{ltaExemptList.length} sem exigência de LTA</span>
                 </div>
               </div>
 
-              <div className="p-4 space-y-3.5 text-xs sm:text-sm">
-                {/* GROUP 1: Obrigatórias */}
-                {ltaRequiredList.length > 0 && (
-                  <div className="space-y-2.5">
-                    <div className="flex items-center gap-1.5 pb-1 border-b border-rose-200 text-rose-800 font-bold text-xs uppercase tracking-wider">
-                      <span className="w-2 h-2 rounded-full bg-rose-600"></span>
-                      Atividades com Aprovação de LTA Obrigatória ({ltaRequiredList.length})
-                    </div>
+              <div className="p-4 space-y-4 text-xs sm:text-sm">
+                {groupedByCnae.map((group, gIdx) => {
+                  const firstAct = group.atividades[0];
+                  const isNenhumaAplicavel =
+                    firstAct.agrupamento?.includes('NENHUMA COMPREENSÃO APLICÁVEL') ||
+                    firstAct.compreensao.includes('Nenhuma compreensão sanitária aplicável');
+                  const isNaoConstaCvs =
+                    firstAct.agrupamento?.includes('NÃO CONSTANTE NA TABELA CVS 01') ||
+                    firstAct.compreensao.includes('não constante na tabela');
+                  const hasLta = group.atividades.some((a) => isActivityLtaRequired(a));
 
-                    {ltaRequiredList.map((act, index) => (
-                      <div
-                        key={`lta-${index}`}
-                        className="p-3.5 rounded-lg border border-rose-300 bg-rose-50/25 space-y-2"
-                      >
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-xs bg-white border border-rose-200 px-2 py-0.5 rounded text-rose-800">
-                              CNAE {act.cnae}
-                            </span>
-                            <span className="font-bold text-slate-900">{act.descricaoCnae}</span>
-                          </div>
+                  return (
+                    <div
+                      key={`cnae-${gIdx}`}
+                      className={`p-3.5 rounded-lg border space-y-2.5 ${
+                        isNaoConstaCvs
+                          ? 'border-slate-300 bg-slate-50/40'
+                          : isNenhumaAplicavel
+                          ? 'border-slate-300 bg-slate-50/40'
+                          : hasLta
+                          ? 'border-rose-200 bg-rose-50/15'
+                          : 'border-emerald-200 bg-emerald-50/15'
+                      }`}
+                    >
+                      {/* Cabeçalho do CNAE: código + denominação econômica */}
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono font-bold text-xs bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-800">
+                            CNAE {group.cnae}
+                          </span>
+                          <span className="font-bold text-slate-900">{group.descricaoCnae}</span>
+                        </div>
+                        {isNaoConstaCvs ? (
+                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-200 text-slate-700 border border-slate-300">
+                            Não consta na CVS 01
+                          </span>
+                        ) : isNenhumaAplicavel ? (
+                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-200 text-slate-700 border border-slate-300">
+                            Nenhuma compreensão aplicável
+                          </span>
+                        ) : hasLta ? (
                           <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
-                            PRECISA DE LTA
+                            Exige LTA
                           </span>
-                        </div>
-
-                        <div className="bg-white p-2.5 rounded border border-rose-100">
-                          <span className="text-rose-800 block text-[10px] uppercase font-bold mb-0.5">
-                            Compreensão Oficial da Atividade (CVS 01):
-                          </span>
-                          <p className="text-slate-900 font-medium leading-relaxed">{act.compreensao}</p>
-                        </div>
-
-                        {(() => {
-                          const excItems = formatNaoCompreendeItems(act.naoCompreende);
-                          if (excItems.length === 0) return null;
-                          const excKey = `doc-lta-${act.cnae}-${index}`;
-                          const isShown = !!expandedExclusoes[excKey];
-
-                          return (
-                            <div className="mt-1">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setExpandedExclusoes((prev) => ({ ...prev, [excKey]: !prev[excKey] }))
-                                }
-                                className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 inline-flex items-center gap-1 cursor-pointer transition-colors"
-                              >
-                                <span className="material-symbols-outlined text-[14px]">
-                                  {isShown ? 'expand_less' : 'expand_more'}
-                                </span>
-                                <span>{isShown ? 'Ocultar' : 'Ver'} atividades excluídas ({excItems.length})</span>
-                              </button>
-                              {isShown && (
-                                <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs text-slate-700 mt-1 space-y-1">
-                                  <span className="font-semibold block text-slate-500 text-[11px]">
-                                    Atividades não compreendidas (excluídas deste enquadramento):
-                                  </span>
-                                  <ul className="list-disc list-inside space-y-0.5 text-slate-600 pl-1">
-                                    {excItems.map((item, i) => (
-                                      <li key={i} className="leading-snug">{item}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
-
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* GROUP 2: Isentas */}
-                {ltaExemptList.length > 0 && (
-                  <div className="space-y-2.5 pt-2">
-                    <div className="flex items-center gap-1.5 pb-1 border-b border-emerald-200 text-emerald-800 font-bold text-xs uppercase tracking-wider">
-                      <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-                      Atividades Dispensadas de LTA ({ltaExemptList.length})
-                    </div>
-
-                    {ltaExemptList.map((act, index) => (
-                      <div
-                        key={`exempt-${index}`}
-                        className="p-3.5 rounded-lg border border-emerald-300 bg-emerald-50/20 space-y-2"
-                      >
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-xs bg-white border border-emerald-200 px-2 py-0.5 rounded text-emerald-800">
-                              CNAE {act.cnae}
-                            </span>
-                            <span className="font-bold text-slate-900">{act.descricaoCnae}</span>
-                          </div>
+                        ) : (
                           <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
-                            NÃO PRECISA DE LTA
+                            Não exige LTA
                           </span>
-                        </div>
-
-                        <div className="bg-white p-2.5 rounded border border-emerald-100">
-                          <span className="text-emerald-800 block text-[10px] uppercase font-bold mb-0.5">
-                            Enquadramento Sanitário:
-                          </span>
-                          <p className="text-slate-900 font-medium leading-relaxed">{act.compreensao}</p>
-                        </div>
-
-                        {(() => {
-                          const excItems = formatNaoCompreendeItems(act.naoCompreende);
-                          if (excItems.length === 0) return null;
-                          const excKey = `doc-exempt-${act.cnae}-${index}`;
-                          const isShown = !!expandedExclusoes[excKey];
-
-                          return (
-                            <div className="mt-1">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setExpandedExclusoes((prev) => ({ ...prev, [excKey]: !prev[excKey] }))
-                                }
-                                className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 inline-flex items-center gap-1 cursor-pointer transition-colors"
-                              >
-                                <span className="material-symbols-outlined text-[14px]">
-                                  {isShown ? 'expand_less' : 'expand_more'}
-                                </span>
-                                <span>{isShown ? 'Ocultar' : 'Ver'} atividades excluídas ({excItems.length})</span>
-                              </button>
-                              {isShown && (
-                                <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs text-slate-700 mt-1 space-y-1">
-                                  <span className="font-semibold block text-slate-500 text-[11px]">
-                                    Atividades não compreendidas (excluídas deste enquadramento):
-                                  </span>
-                                  <ul className="list-disc list-inside space-y-0.5 text-slate-600 pl-1">
-                                    {excItems.map((item, i) => (
-                                      <li key={i} className="leading-snug">{item}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
+
+                      {/* Descrições CONCLA selecionadas */}
+                      {group.descritoresSelecionados.length > 0 && (
+                        <div className="bg-white p-2.5 rounded border border-slate-100">
+                          <span className="text-slate-600 block text-[10px] uppercase font-bold mb-1">
+                            Descrições econômicas selecionadas (CONCLA):
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {group.descritoresSelecionados.map((desc, dIdx) => (
+                              <span
+                                key={dIdx}
+                                className="inline-block text-[11px] bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded"
+                              >
+                                {formatDescritorForDisplay(desc)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Enquadramento sanitário: compreensões CVS selecionadas */}
+                      {!isNenhumaAplicavel && !isNaoConstaCvs && (
+                        <div className="space-y-2">
+                          {group.atividades.map((act, aIdx) => {
+                            const actLta = isActivityLtaRequired(act);
+                            const hasDoc52 = act.documentosInspecao?.includes('52');
+                            const excItems = formatNaoCompreendeItems(act.naoCompreende);
+                            const excKey = `doc-${gIdx}-${aIdx}`;
+                            const isShown = !!expandedExclusoes[excKey];
+                            return (
+                              <div
+                                key={`act-${gIdx}-${aIdx}`}
+                                className={`p-2.5 rounded border ${
+                                  actLta
+                                    ? 'bg-rose-50/40 border-rose-200'
+                                    : 'bg-emerald-50/30 border-emerald-200'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-2 flex-wrap mb-1">
+                                  <p className="text-slate-900 font-medium leading-relaxed flex-1 min-w-0">
+                                    {act.compreensao}
+                                  </p>
+                                  {act.paginaCvs && String(act.paginaCvs) !== 'N/A' && (
+                                    <span className="text-[10px] text-slate-500 font-mono shrink-0">
+                                      CVS p. {act.paginaCvs}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span
+                                    className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${
+                                      actLta
+                                        ? 'bg-rose-100 text-rose-800 border-rose-200'
+                                        : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                    }`}
+                                  >
+                                    {actLta ? 'Exige LTA' : 'Não exige LTA'}
+                                  </span>
+                                  {actLta && hasDoc52 && (
+                                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                                      Documento 52 presente
+                                    </span>
+                                  )}
+                                </div>
+                                {excItems.length > 0 && (
+                                  <div className="mt-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setExpandedExclusoes((prev) => ({ ...prev, [excKey]: !prev[excKey] }))
+                                      }
+                                      className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                    >
+                                      <span className="material-symbols-outlined text-[14px]">
+                                        {isShown ? 'expand_less' : 'expand_more'}
+                                      </span>
+                                      <span>{isShown ? 'Ocultar' : 'Ver'} atividades excluídas ({excItems.length})</span>
+                                    </button>
+                                    {isShown && (
+                                      <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs text-slate-700 mt-1 space-y-1">
+                                        <span className="font-semibold block text-slate-500 text-[11px]">
+                                          Atividades não compreendidas (excluídas deste enquadramento):
+                                        </span>
+                                        <ul className="list-disc list-inside space-y-0.5 text-slate-600 pl-1">
+                                          {excItems.map((item, i) => (
+                                            <li key={i} className="leading-snug">{item}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Caso: nenhuma compreensão se aplica */}
+                      {isNenhumaAplicavel && (
+                        <div className="bg-white p-2.5 rounded border border-slate-200">
+                          <p className="text-slate-700 leading-relaxed">{firstAct.compreensao}</p>
+                          <div className="flex items-center gap-2 flex-wrap mt-2">
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              Não exige LTA
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Caso: CNAE não consta na CVS */}
+                      {isNaoConstaCvs && (
+                        <div className="bg-white p-2.5 rounded border border-slate-200">
+                          <p className="text-slate-700 leading-relaxed">{firstAct.compreensao}</p>
+                          <div className="flex items-center gap-2 flex-wrap mt-2">
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              Não exige LTA
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -718,42 +771,56 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
               3
             </span>
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-              Observações
+              Observações e Responsabilidade
             </h3>
           </div>
 
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-700 leading-relaxed shadow-2xs">
             <ul className="space-y-2">
               <li className="flex items-start gap-2">
-                <span className="font-bold text-slate-900 shrink-0">• Responsabilidade:</span>
-                <span>O resultado baseia-se exclusivamente nas informações e atividades declaradas pelo requerente.</span>
+                <span className="font-bold text-slate-900 shrink-0">• Responsabilidade pelas informações:</span>
+                <span>As informações relativas aos códigos CNAE, às atividades efetivamente exercidas e às compreensões sanitárias selecionadas são de responsabilidade do requerente. O resultado desta consulta decorre exclusivamente das informações declaradas e dos critérios documentais previstos na Portaria CVS aplicável. As declarações aqui constantes não foram conferidas ou aprovadas individualmente pela Vigilância Sanitária Municipal.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="font-bold text-slate-900 shrink-0">• Natureza do Documento:</span>
-                <span>Este comprovante de triagem eletrônica prévia não substitui o Laudo Técnico de Avaliação (LTA) nem a aprovação de projeto físico-funcional.</span>
+                <span className="font-bold text-slate-900 shrink-0">• Natureza do documento:</span>
+                <span>Este comprovante não constitui Laudo Técnico de Avaliação (LTA), licença sanitária, autorização administrativa, certidão de regularidade, aprovação de projeto ou manifestação definitiva da Vigilância Sanitária Municipal.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="font-bold text-slate-900 shrink-0">• Protocolo no Município:</span>
-                <span>Para formalização ou comprovação perante a Vigilância Sanitária Municipal de Sertãozinho-SP, anexe este comprovante (PDF) ao processo eletrônico no sistema Aprova Online.</span>
+                <span className="font-bold text-slate-900 shrink-0">• Dispensa de LTA:</span>
+                <span>A não exigência de LTA não implica a dispensa de licenciamento sanitário, sem prejuízo do cumprimento de outras obrigações legais aplicáveis, incluindo as Boas Práticas Sanitárias.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="font-bold text-slate-900 shrink-0">• Regularidade Sanitária:</span>
-                <span>A eventual dispensa de LTA não desobriga o cumprimento integral das Boas Práticas Sanitárias e a obtenção da Licença de Funcionamento Sanitária regular.</span>
+                <span className="font-bold text-slate-900 shrink-0">• Fundamentação:</span>
+                <span>A decisão sobre a necessidade de LTA é derivada exclusivamente dos documentos associados à compreensão sanitária na base normativa vigente, não sendo utilizada a consulta a dados antigos ou listas personalizadas.</span>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* Rodapé Institucional do MVP (sem assinatura individual simulada, sem QR code ou validação fictícia) */}
-        <div className="pt-4 border-t-2 border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left text-xs text-slate-600">
-          <div>
-            <p className="font-bold text-slate-900">Prefeitura Municipal de Sertãozinho-SP</p>
-            <p className="text-[11px] text-slate-700 font-medium">Secretaria Municipal de Saúde — Vigilância Sanitária</p>
-            <p className="text-[10px] text-slate-500">Ferramenta eletrônica de triagem de necessidade de LTA</p>
+        {/* Rodapé Institucional — versão normativa e rastreabilidade (sem QR, protocolo ou assinatura digital) */}
+        <div className="pt-4 border-t-2 border-slate-200 flex flex-col gap-2 text-center sm:text-left text-xs text-slate-600">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <p className="font-bold text-slate-900">Prefeitura Municipal de Sertãozinho-SP</p>
+              <p className="text-[11px] text-slate-700 font-medium">Secretaria Municipal de Saúde — Vigilância Sanitária</p>
+              <p className="text-[10px] text-slate-500">Ferramenta de consulta sobre a necessidade de LTA</p>
+            </div>
+            <div className="sm:text-right text-[11px] text-slate-500 space-y-0.5">
+              <p>
+                <span className="font-semibold">Norma:</span>{' '}
+                {result.normativeVersion || 'Portaria CVS n° 1/2024 — atualização em 13/05/2026'}
+              </p>
+              <p>
+                <span className="font-semibold">Gerado em:</span>{' '}
+                {result.timestamp || '—'}
+              </p>
+            </div>
           </div>
-          <div className="sm:text-right">
-            <span className="text-[11px] text-slate-500 font-mono">Dúvidas técnicas: visastsertaozinho@gmail.com</span>
-          </div>
+          {result.normativeHash && (
+            <div className="text-[9px] text-slate-400 font-mono break-all pt-1 border-t border-slate-100">
+              SHA-256 base normativa: {result.normativeHash}
+            </div>
+          )}
         </div>
       </div>
     </div>
