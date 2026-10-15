@@ -12,13 +12,25 @@ import { ProtocoloGuiaView } from './components/ProtocoloGuiaView';
 import {
   CNAEItem,
   CompanyIdentification,
+  DeclaredCnae,
   SelectedCvsActivity,
   StepId,
   TopTab,
   VerificationResult,
 } from './types';
-import { loadCnaeDatabase } from './data/cnaeDatabase';
+import { loadCnaeDatabase, resetCnaeDatabase } from './data/cnaeDatabase';
 import { isActivityLtaRequired } from './data/cvsLtaService';
+import {
+  computeConsultaResultado,
+  declaredCnaeToActivities,
+  isConsultaCompleta,
+} from './data/cvsDeclarationService';
+import {
+  PORTARIA_CVS_RASTREABILIDADE,
+} from './data/normativeMetadata';
+import cvsMetadata from './data/cvsLta.metadata.json';
+
+const CVS_INTEGRITY_HASH = cvsMetadata.integridade?.sha256 || '';
 
 const STORAGE_KEY_HISTORY = 'sertaozinho_cvs_lta_history_v2';
 
@@ -60,6 +72,9 @@ export function App() {
   // Selected Activities in the CVS 01 system (Array of activities)
   const [selectedCvsActivities, setSelectedCvsActivities] = useState<SelectedCvsActivity[]>([]);
   const [selectedCnaes, setSelectedCnaes] = useState<CNAEItem[]>([]);
+
+  // FASE 2: CNAEs declarados com verificação de compreensões sanitárias
+  const [declaredCnaes, setDeclaredCnaes] = useState<DeclaredCnae[]>([]);
 
   // History & Active Result
   const [history, setHistory] = useState<VerificationResult[]>([]);
@@ -122,14 +137,71 @@ export function App() {
   const handleClearActivities = () => {
     setSelectedCvsActivities([]);
     setSelectedCnaes([]);
+    setDeclaredCnaes([]);
+  };
+
+  // FASE 2: Adicionar um CNAE declarado
+  const handleAddDeclaredCnae = (declared: DeclaredCnae) => {
+    setDeclaredCnaes((prev) => {
+      if (prev.some((d) => d.cnaeDigitos === declared.cnaeDigitos)) return prev;
+      return [...prev, declared];
+    });
+  };
+
+  // FASE 2: Atualizar um CNAE declarado (ex: selecionar compreensão)
+  // Se o updater retornar null, o CNAE é removido da lista.
+  const handleUpdateDeclaredCnae = (cnaeDigitos: string, updater: (d: DeclaredCnae) => DeclaredCnae | null) => {
+    setDeclaredCnaes((prev) =>
+      prev
+        .map((d) => (d.cnaeDigitos === cnaeDigitos ? updater(d) : d))
+        .filter((d): d is DeclaredCnae => d !== null)
+    );
+  };
+
+  // FASE 2: Remover um CNAE declarado
+  const handleRemoveDeclaredCnae = (cnaeDigitos: string) => {
+    setDeclaredCnaes((prev) => prev.filter((d) => d.cnaeDigitos !== cnaeDigitos));
   };
 
   // Compute Verification Result and Navigate directly to Conclusão
   const computeAndFinish = () => {
-    const activities = selectedCvsActivities;
+    // FASE 2: Se há CNAEs declarados, usa-os como fonte da verdade
+    let activities = selectedCvsActivities;
+
+    if (declaredCnaes.length > 0) {
+      // Verifica se há pendências — não deve chegar aqui, mas proteção dupla
+      if (!isConsultaCompleta(declaredCnaes)) {
+        return;
+      }
+      // Converte CNAEs declarados para atividades (reclassificação normativa vigente)
+      const converted: SelectedCvsActivity[] = [];
+      for (const declared of declaredCnaes) {
+        const acts = declaredCnaeToActivities(declared);
+        for (const a of acts) {
+          converted.push({
+            cnae: a.cnae,
+            cnaeNormalizado: a.cnaeNormalizado,
+            descricaoCnae: a.descricaoCnae,
+            compreensao: a.compreensao,
+            agrupamento: a.agrupamento,
+            risco: a.risco,
+            documentoPrevio: a.documentoPrevio,
+            documentosInspecao: a.documentosInspecao,
+            naoCompreende: a.naoCompreende,
+            paginaCvs: a.paginaCvs,
+            exigeLta: a.exigeLta,
+            descritoresSelecionados: a.descritoresSelecionados,
+          });
+        }
+      }
+      activities = converted;
+      // Atualiza selectedCvsActivities para compatibilidade
+      setSelectedCvsActivities(converted);
+    }
+
     if (activities.length === 0) return;
 
-    // Check if at least one activity has LTA requirement
+    // Reclassifica sempre a partir dos documentos normativos vigentes (doc 52)
     const hasLtaExigido = activities.some(isActivityLtaRequired);
 
     const isAllNoActivity = activities.every(
@@ -187,6 +259,9 @@ export function App() {
       documentosInspecao: primaryActivity?.documentosInspecao,
       naoCompreende: primaryActivity?.naoCompreende,
       paginaCvs: primaryActivity?.paginaCvs,
+      // FASE 2: Rastreabilidade normativa
+      normativeVersion: PORTARIA_CVS_RASTREABILIDADE,
+      normativeHash: CVS_INTEGRITY_HASH,
     };
 
     setActiveResult(newResult);
@@ -273,6 +348,9 @@ export function App() {
       documentosInspecao: noActivityCvs.documentosInspecao,
       naoCompreende: '',
       paginaCvs: 'N/A',
+      // FASE 2: Rastreabilidade normativa
+      normativeVersion: PORTARIA_CVS_RASTREABILIDADE,
+      normativeHash: CVS_INTEGRITY_HASH,
     };
 
     setActiveResult(newResult);
@@ -293,7 +371,25 @@ export function App() {
     setIdentification({ ...INITIAL_IDENTIFICATION });
     setSelectedCvsActivities([]);
     setSelectedCnaes([]);
+    setDeclaredCnaes([]);
+    setHistory([]);
     setActiveResult(null);
+
+    // Limpa dados persistidos no localStorage
+    try {
+      localStorage.removeItem(STORAGE_KEY_HISTORY);
+    } catch (e) {
+      console.error('Error clearing history storage', e);
+    }
+
+    // Limpa CNAEs customizados e recarrega a base oficial CVS 01
+    try {
+      const officialBase = resetCnaeDatabase();
+      setCnaeDatabase(officialBase);
+    } catch (e) {
+      console.error('Error resetting CNAE database', e);
+    }
+
     setSessionKey((prev) => prev + 1);
     setCurrentStep('identificacao');
     setTopTab('servicos');
@@ -370,6 +466,10 @@ export function App() {
                   onFinish={computeAndFinish}
                   onPrev={() => setCurrentStep('identificacao')}
                   onDirectConclusionNoActivity={handleDirectConclusionNoActivity}
+                  declaredCnaes={declaredCnaes}
+                  onAddDeclaredCnae={handleAddDeclaredCnae}
+                  onUpdateDeclaredCnae={handleUpdateDeclaredCnae}
+                  onRemoveDeclaredCnae={handleRemoveDeclaredCnae}
                 />
               )}
 

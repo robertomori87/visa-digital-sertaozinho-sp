@@ -48,7 +48,7 @@ export const Step4Conclusion: React.FC<Step4ConclusionProps> = ({
         {/* Cabeçalho Resumido & Botão de Ajuda Unificado */}
         <div className="w-full flex items-center justify-between pb-3 mb-4 border-b border-slate-100 flex-wrap gap-2 text-left">
           <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">
-            Etapa 3 de 3 • Parecer Sanitário Oficial
+            Etapa 3 de 3 • Resultado da Consulta
           </span>
           <button
             type="button"
@@ -96,8 +96,8 @@ export const Step4Conclusion: React.FC<Step4ConclusionProps> = ({
           {isNoActivity
             ? 'Não há exigência de LTA nesta consulta'
             : isLtaRequired
-            ? 'Laudo Técnico de Avaliação (LTA) Obrigatório'
-            : 'Atividade(s) Dispensada(s) de Apresentação Prévia de LTA'}
+            ? 'Laudo Técnico de Avaliação (LTA) Necessário'
+            : 'Atividade(s) sem Exigência de Apresentação Prévia de LTA'}
         </h1>
 
         <p className="text-xs sm:text-sm text-slate-500 mb-6 max-w-lg leading-relaxed">
@@ -106,20 +106,20 @@ export const Step4Conclusion: React.FC<Step4ConclusionProps> = ({
             : isLtaRequired
             ? `Com base no enquadramento sanitário na Portaria CVS 01/2024, ${
                 ltaRequiredList.length === activities.length
-                  ? 'todas as atividades informadas exigem LTA prévio.'
-                  : `${ltaRequiredList.length} atividade(s) exige(m) aprovação prévia de projeto físico (LTA), enquanto ${ltaExemptList.length} atividade(s) está(ão) dispensada(s).`
-              }`
-            : 'As atividades informadas não constam no rol de obrigatoriedade de LTA da Portaria CVS 01/2024 ou estão dispensadas de avaliação física prévia.'}
+                  ? 'todas as atividades declaradas exigem LTA.'
+                  : `${ltaRequiredList.length} atividade(s) exige(m) LTA, enquanto ${ltaExemptList.length} atividade(s) não exige(m).`
+              } A conclusão decorre exclusivamente das informações declaradas e dos critérios documentais previstos na Portaria CVS aplicável.`
+            : 'Nenhuma das atividades declaradas exige a apresentação do LTA segundo as compreensões sanitárias selecionadas. A não exigência de LTA não implica a dispensa de licenciamento sanitário, sem prejuízo de outras obrigações legais aplicáveis.'}
         </p>
 
         {/* Official Details Card */}
         <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-5 mb-6 text-left space-y-4">
           <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
             <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Detalhamento do Parecer Sanitário
+              Detalhamento da Consulta
             </span>
-            <span className="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-              Protocolo: {result.protocol}
+            <span className="text-xs font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+              {result.normativeVersion || 'Portaria CVS n° 1/2024'}
             </span>
           </div>
 
