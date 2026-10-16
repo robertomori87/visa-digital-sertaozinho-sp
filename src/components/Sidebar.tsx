@@ -23,12 +23,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenProtocolo,
   onReset,
 }) => {
-  const steps: { id: StepId; label: string; icon: string }[] = [
-    { id: 'identificacao', label: '1. Identificação', icon: 'person' },
-    { id: 'atividade', label: '2. Atividades (CVS 01)', icon: 'business_center' },
-    { id: 'conclusao', label: '3. Resultado e Comprovante', icon: 'verified' },
-  ];
-
   // If we are currently on comprovante view, we consider 'conclusao' active in sidebar
   const activeStepId = currentStep === 'comprovante' ? 'conclusao' : currentStep;
 
@@ -49,46 +43,93 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1.5">
-          <div className="text-[11px] font-semibold text-slate-400 uppercase px-2 mb-2 tracking-wider">
-            Etapas da Triagem
+        <nav className="flex-1 p-4 space-y-2">
+          <div className="text-[11px] font-semibold text-slate-400 uppercase px-2 mb-1 tracking-wider">
+            Navegação Principal
           </div>
-          {steps.map((s, idx) => {
-            const isActive = activeStepId === s.id;
-            const isStep3Locked = s.id === 'conclusao' && !hasActiveResult;
-            return (
-              <button
-                key={s.id}
-                onClick={() => {
-                  if (isStep3Locked) {
-                    onSelectStep('identificacao');
-                  } else {
-                    onSelectStep(s.id);
-                  }
-                }}
-                title={isStep3Locked ? 'Preencha as etapas 1 e 2 para gerar o parecer' : undefined}
-                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-left transition-all duration-150 cursor-pointer ${
-                  isActive
-                    ? 'bg-indigo-600 text-white font-semibold shadow-sm'
-                    : isStep3Locked
-                    ? 'text-slate-500 hover:text-slate-400 hover:bg-slate-800/50 opacity-70'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+
+          {/* Botão Único de Triagem no Menu Lateral */}
+          <button
+            type="button"
+            onClick={() => onSelectStep(currentStep)}
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 text-white shadow-sm hover:bg-indigo-500 transition-colors cursor-pointer"
+            title="Acessar a Triagem Sanitária de LTA"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="material-symbols-outlined text-[20px] shrink-0 text-white">assignment</span>
+              <span className="truncate">Triagem Sanitária (LTA)</span>
+            </div>
+            <span className="text-[10px] bg-indigo-700/80 text-indigo-100 px-2 py-0.5 rounded-md font-mono shrink-0">
+              {currentStep === 'identificacao' ? 'Etapa 1/3' : currentStep === 'atividade' ? 'Etapa 2/3' : 'Etapa 3/3'}
+            </span>
+          </button>
+
+          {/* Indicador Visual Informativo das Etapas (Não clicável para não permitir pular etapas) */}
+          <div className="mx-1 mt-2 mb-4 p-3 bg-slate-800/60 rounded-xl border border-slate-700/60 space-y-2.5">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+              <span>Fluxo Sequencial</span>
+              <span className="text-indigo-400 font-mono">
+                {currentStep === 'identificacao' ? '1 de 3' : currentStep === 'atividade' ? '2 de 3' : '3 de 3'}
+              </span>
+            </div>
+
+            <div className="space-y-1.5 text-xs">
+              <div
+                className={`flex items-center gap-2 py-1 px-1.5 rounded transition-colors ${
+                  activeStepId === 'identificacao'
+                    ? 'text-indigo-300 font-bold bg-indigo-950/40'
+                    : 'text-slate-400'
                 }`}
               >
-                <span
-                  className={`material-symbols-outlined text-[18px] shrink-0 ${
-                    isActive ? 'text-white' : isStep3Locked ? 'text-slate-500' : 'text-slate-400'
-                  }`}
-                >
-                  {isStep3Locked ? 'lock' : s.icon}
+                <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                  activeStepId === 'identificacao'
+                    ? 'bg-indigo-600 text-white'
+                    : activeStepId === 'atividade' || activeStepId === 'conclusao'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-slate-700 text-slate-400'
+                }`}>
+                  {activeStepId === 'atividade' || activeStepId === 'conclusao' ? '✓' : '1'}
                 </span>
-                <span className="truncate">{s.label}</span>
-                <span className="ml-auto text-[10px] font-mono opacity-60">
-                  0{idx + 1}
+                <span className="truncate">1. Identificação</span>
+              </div>
+
+              <div
+                className={`flex items-center gap-2 py-1 px-1.5 rounded transition-colors ${
+                  activeStepId === 'atividade'
+                    ? 'text-indigo-300 font-bold bg-indigo-950/40'
+                    : 'text-slate-400'
+                }`}
+              >
+                <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                  activeStepId === 'atividade'
+                    ? 'bg-indigo-600 text-white'
+                    : activeStepId === 'conclusao'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-slate-700 text-slate-400'
+                }`}>
+                  {activeStepId === 'conclusao' ? '✓' : '2'}
                 </span>
-              </button>
-            );
-          })}
+                <span className="truncate">2. Atividades (CVS 01)</span>
+              </div>
+
+              <div
+                className={`flex items-center gap-2 py-1 px-1.5 rounded transition-colors ${
+                  activeStepId === 'conclusao'
+                    ? 'text-emerald-300 font-bold bg-emerald-950/40'
+                    : 'text-slate-400'
+                }`}
+              >
+                <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                  activeStepId === 'conclusao'
+                    ? 'bg-emerald-500 text-slate-950'
+                    : 'bg-slate-700 text-slate-400'
+                }`}>
+                  3
+                </span>
+                <span className="truncate">3. Comprovante de Triagem</span>
+              </div>
+            </div>
+          </div>
 
           <div className="text-[11px] font-semibold text-slate-400 uppercase px-2 mt-6 mb-2 tracking-wider">
             Orientações & Ações

@@ -8,6 +8,7 @@ import {
 } from '../data/normativeMetadata';
 import { getAllQuadro9ItemsFromActivities } from '../data/quadro9Docs';
 import { generateOfficialPdf } from '../utils/generateOfficialPdf';
+import { ProtocoloGuiaView } from './ProtocoloGuiaView';
 
 interface DocumentComprovanteProps {
   result: VerificationResult;
@@ -23,6 +24,7 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
   onOpenProtocolo,
 }) => {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isGuiaModalOpen, setIsGuiaModalOpen] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [downloadedPdfInfo, setDownloadedPdfInfo] = useState<{ url: string; filename: string } | null>(null);
 
@@ -565,39 +567,39 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
 
         {/* DOCUMENTOS TÉCNICOS PRÉVIOS PARA ANÁLISE DE LTA (somente quando LTA for obrigatório) */}
         {isLtaRequired && quadro9RequiredDocs.length > 0 && (
-          <div className="border border-slate-300 rounded-lg p-4 mb-6 bg-white space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+          <div className="border border-slate-300 rounded-xl p-4 sm:p-6 mb-6 bg-white space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 flex-wrap gap-2">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-800 block">
+                <span className="text-xs font-bold uppercase tracking-wider text-indigo-800 block">
                   Processo Digital • Sistema Aprova Online Sertãozinho-SP
                 </span>
-                <h3 className="text-xs font-bold text-slate-900 uppercase">
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 uppercase tracking-tight mt-0.5">
                   Documentos Técnicos para Laudo Técnico de Avaliação (LTA)
                 </h3>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-50 text-rose-800 border border-rose-200">
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-800 border border-rose-200 shrink-0">
                 {quadro9RequiredDocs.length} Documento(s) Exigido(s)
               </span>
             </div>
 
-            <p className="text-[11px] text-slate-600 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
               Relação oficial de documentos técnicos exigidos pela {PORTARIA_CVS_LABEL} e pelo Município de Sertãozinho-SP para análise e emissão de LTA junto à Vigilância Sanitária:
             </p>
 
-            <div className="overflow-x-auto rounded border border-slate-200">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-left text-xs sm:text-sm border-collapse">
                 <thead>
-                  <tr className="bg-slate-100 border-b border-slate-200 text-slate-800 font-bold uppercase text-[10px] tracking-wider">
-                    <th className="py-2.5 px-3 w-20 text-center">CÓDIGO</th>
-                    <th className="py-2.5 px-3">TIPO</th>
+                  <tr className="bg-slate-100 border-b border-slate-200 text-slate-800 font-bold uppercase text-xs tracking-wider">
+                    <th className="py-3 px-3.5 w-24 text-center">CÓDIGO</th>
+                    <th className="py-3 px-4">DOCUMENTO TÉCNICO EXIGIDO</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
                   {quadro9RequiredDocs.map((doc) => (
-                    <tr key={String(doc.codigo)} className="hover:bg-slate-50/50">
-                      <td className="py-2.5 px-3 font-mono font-bold text-center">
+                    <tr key={String(doc.codigo)} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3.5 px-3.5 font-mono font-bold text-center align-top">
                         <span
-                          className={`inline-block px-1.5 py-0.5 rounded border text-xs font-bold leading-normal ${
+                          className={`inline-block px-2 py-0.5 rounded border text-xs sm:text-sm font-bold leading-normal ${
                             doc.origem === 'MUNICIPAL'
                               ? 'bg-amber-50 border-amber-300 text-amber-900'
                               : 'bg-indigo-50 border-indigo-200 text-indigo-900'
@@ -606,22 +608,22 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
                           {doc.codigo}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-slate-800 text-[11px] leading-relaxed font-medium">
-                        <div className="flex items-start justify-between gap-2 flex-wrap">
-                          <span>{doc.tipo}</span>
+                      <td className="py-3.5 px-4 text-slate-900 text-xs sm:text-sm leading-relaxed font-medium">
+                        <div className="flex items-start justify-between gap-2 flex-wrap mb-1">
+                          <span className="font-semibold text-slate-950 text-xs sm:text-sm">{doc.tipo}</span>
                           {doc.origem === 'MUNICIPAL' && (
-                            <span className="shrink-0 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                            <span className="shrink-0 text-[10px] sm:text-xs font-bold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
                               Exigido pelo Município
                             </span>
                           )}
                         </div>
                         {Number(doc.codigo) === 2 && (
-                          <div className="mt-1.5 p-2 rounded bg-emerald-50 border border-emerald-200 text-[10.5px] text-emerald-950 font-normal leading-relaxed">
+                          <div className="mt-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs sm:text-[13px] text-emerald-950 font-normal leading-relaxed">
                             <strong>Taxa Municipal de LTA (Sertãozinho-SP):</strong> O Município de Sertãozinho-SP <strong>não instituiu taxa para análise de LTA</strong>. Portanto, para o protocolo perante a Vigilância Sanitária Municipal, <strong>não é exigido comprovante de recolhimento de taxa municipal (DARE ou equivalente)</strong>.
                           </div>
                         )}
                         {Number(doc.codigo) === 9 && (
-                          <div className="mt-1.5 p-2 rounded bg-indigo-50 border border-indigo-200 text-[10.5px] text-indigo-950 font-normal leading-relaxed">
+                          <div className="mt-2 p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-xs sm:text-[13px] text-indigo-950 font-normal leading-relaxed">
                             <strong>Formulário Digital:</strong> O formulário de solicitação de LTA será preenchido diretamente no sistema <strong>Aprova Online</strong> durante a abertura do protocolo (não é necessário anexar formulário externo em papel ou PDF).
                           </div>
                         )}
@@ -632,55 +634,67 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
               </table>
             </div>
 
-            <div className="text-[11px] text-slate-700 bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-200 mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 leading-relaxed">
-              <div className="flex items-start gap-1.5 flex-1">
-                <span className="text-indigo-700 font-bold shrink-0 mt-0.5">ℹ️</span>
-                <span>
+            {/* Caixa de Apresentação no Aprova Online com Abertura em Nova Janela e Roteiro Modal */}
+            <div className="text-xs sm:text-sm text-slate-800 bg-indigo-50/70 p-4 rounded-xl border border-indigo-200 mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 leading-relaxed shadow-2xs">
+              <div className="flex items-start gap-2 flex-1">
+                <span className="text-indigo-700 font-bold text-base shrink-0 mt-0.5">ℹ️</span>
+                <span className="text-slate-800">
                   <strong>Apresentação no Aprova Online:</strong> Os documentos acima (da Portaria CVS 01/2024 e os exigidos pelo Município) devem ser anexados digitalmente no momento da formalização do processo eletrônico de LTA junto à Vigilância Sanitária de Sertãozinho-SP.
                 </span>
               </div>
-              {onOpenProtocolo && (
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
                 <button
                   type="button"
-                  onClick={onOpenProtocolo}
-                  className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-300 rounded text-indigo-700 font-bold text-[10px] shrink-0 inline-flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                  onClick={() => setIsGuiaModalOpen(true)}
+                  className="w-full sm:w-auto px-3.5 py-2 bg-white hover:bg-indigo-50 border border-indigo-300 rounded-xl text-indigo-700 font-bold text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-2xs whitespace-nowrap"
+                  title="Ver roteiro completo de como protocolar no Aprova Online"
                 >
-                  <span className="material-symbols-outlined text-[14px]">assignment_turned_in</span>
-                  <span>Como Protocolar no Aprova Online</span>
+                  <span className="material-symbols-outlined text-[16px]">menu_book</span>
+                  <span>Ver Roteiro Passo a Passo</span>
                 </button>
-              )}
+                <a
+                  href="https://aprovaonline.sertaozinho.sp.gov.br/alvara_sertaozinho/login.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 transition-colors shadow-2xs whitespace-nowrap"
+                  title="Acessar o portal oficial Aprova Online em uma nova janela"
+                >
+                  <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                  <span>Acessar Aprova Online ↗</span>
+                </a>
+              </div>
             </div>
           </div>
         )}
 
         {/* BLOCO 3: OBSERVAÇÕES & RESPONSABILIDADE */}
         <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2 pb-1 border-b border-slate-200">
+          <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-slate-200">
             <span className="w-5 h-5 rounded bg-indigo-700 text-white font-mono font-bold text-[11px] flex items-center justify-center">
               3
             </span>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-              Observações e Responsabilidade
+            <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
+              Orientações, Esclarecimentos e Responsabilidade sobre o LTA
             </h3>
           </div>
 
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-700 leading-relaxed shadow-2xs">
-            <ul className="space-y-2">
-              <li className="flex items-start gap-2">
-                <span className="font-bold text-slate-900 shrink-0">• Responsabilidade pelas informações:</span>
-                <span>As informações relativas aos códigos CNAE, às atividades efetivamente exercidas e às compreensões sanitárias selecionadas são de responsabilidade do requerente. O resultado desta consulta decorre exclusivamente das informações declaradas e dos critérios documentais previstos na Portaria CVS aplicável. As declarações aqui constantes não foram conferidas ou aprovadas individualmente pela Vigilância Sanitária Municipal.</span>
+          <div className="bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-800 leading-relaxed shadow-2xs">
+            <ul className="space-y-3">
+              <li className="flex items-start gap-2.5">
+                <span className="font-bold text-slate-950 shrink-0">• Responsabilidade pelas informações:</span>
+                <span className="text-slate-700">As informações relativas aos códigos CNAE, às atividades efetivamente exercidas e às compreensões sanitárias selecionadas são de responsabilidade do requerente. O resultado desta consulta decorre exclusivamente das informações declaradas e dos critérios documentais previstos na Portaria CVS aplicável. As declarações aqui constantes não foram conferidas ou aprovadas individualmente pela Vigilância Sanitária Municipal.</span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="font-bold text-slate-900 shrink-0">• Natureza do documento:</span>
-                <span>Este comprovante não constitui Laudo Técnico de Avaliação (LTA), licença sanitária, autorização administrativa, certidão de regularidade, aprovação de projeto ou manifestação definitiva da Vigilância Sanitária Municipal.</span>
+              <li className="flex items-start gap-2.5">
+                <span className="font-bold text-slate-950 shrink-0">• Natureza do documento:</span>
+                <span className="text-slate-700">Este comprovante não constitui Laudo Técnico de Avaliação (LTA), licença sanitária, autorização administrativa, certidão de regularidade, aprovação de projeto ou manifestação definitiva da Vigilância Sanitária Municipal.</span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="font-bold text-slate-900 shrink-0">• Dispensa de LTA:</span>
-                <span>A não exigência de LTA não implica a dispensa de licenciamento sanitário, sem prejuízo do cumprimento de outras obrigações legais aplicáveis, incluindo as Boas Práticas Sanitárias.</span>
+              <li className="flex items-start gap-2.5">
+                <span className="font-bold text-slate-950 shrink-0">• Dispensa de LTA:</span>
+                <span className="text-slate-700">A não exigência de LTA não implica a dispensa de licenciamento sanitário, sem prejuízo do cumprimento de outras obrigações legais aplicáveis, incluindo as Boas Práticas Sanitárias.</span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="font-bold text-slate-900 shrink-0">• Fundamentação:</span>
-                <span>A decisão sobre a necessidade de LTA é derivada exclusivamente dos documentos associados à compreensão sanitária na base normativa vigente, não sendo utilizada a consulta a dados antigos ou listas personalizadas.</span>
+              <li className="flex items-start gap-2.5">
+                <span className="font-bold text-slate-950 shrink-0">• Fundamentação:</span>
+                <span className="text-slate-700">A decisão sobre a necessidade de LTA é derivada exclusivamente dos documentos associados à compreensão sanitária na base normativa vigente, não sendo utilizada a consulta a dados antigos ou listas personalizadas.</span>
               </li>
             </ul>
           </div>
@@ -754,6 +768,52 @@ export const DocumentComprovante: React.FC<DocumentComprovanteProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Modal do Roteiro de Protocolo no Aprova Online (sem sair da página do comprovante) */}
+      {isGuiaModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn">
+          <div className="bg-white rounded-2xl border border-slate-300 shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white">
+              <div className="flex items-center gap-2.5">
+                <span className="material-symbols-outlined text-indigo-400 text-[22px]">assignment_turned_in</span>
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base leading-tight">Como Protocolar no Aprova Online</h3>
+                  <p className="text-[11px] text-slate-400">Roteiro oficial para abertura de processo de LTA em Sertãozinho-SP</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsGuiaModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Fechar roteiro"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-[#f8fafc]">
+              <ProtocoloGuiaView onStartVerification={() => setIsGuiaModalOpen(false)} />
+            </div>
+            <div className="p-3.5 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white">
+              <a
+                href="https://aprovaonline.sertaozinho.sp.gov.br/alvara_sertaozinho/login.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-2xs whitespace-nowrap"
+              >
+                <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                <span>Acessar o Aprova Online em Nova Aba ↗</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setIsGuiaModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Voltar ao Comprovante
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

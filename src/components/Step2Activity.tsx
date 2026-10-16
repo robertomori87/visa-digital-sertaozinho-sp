@@ -223,6 +223,25 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
     }
   };
 
+  // Rola suavemente até o quadro de atividades incluídas no estabelecimento
+  const handleScrollToActivitiesBox = () => {
+    if (mainMode === 'sem_atividade') {
+      const el = document.getElementById('quadro-sem-atividade');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-4', 'ring-emerald-400');
+        setTimeout(() => el.classList.remove('ring-4', 'ring-emerald-400'), 1500);
+      }
+      return;
+    }
+    const el = document.getElementById('quadro-atividades-selecionadas');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.classList.add('ring-4', 'ring-indigo-400');
+      setTimeout(() => el.classList.remove('ring-4', 'ring-indigo-400'), 1500);
+    }
+  };
+
   const handlePropertyNotesChange = (notes: string) => {
     setPropertyNotes(notes);
     if (declarationNoActivity) {
@@ -604,24 +623,34 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
 
       {/* Toast de feedback (sempre visível quando há mensagem) */}
       {addedToastMessage && (
-        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs font-bold flex items-center justify-between gap-2 shadow-xs">
+        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs animate-fadeIn">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[20px] text-emerald-600 shrink-0">check_circle</span>
             <span>{addedToastMessage}</span>
           </div>
-          <button
-            type="button"
-            onClick={() => setAddedToastMessage(null)}
-            className="text-emerald-700 hover:text-emerald-900 p-1 cursor-pointer shrink-0"
-          >
-            <span className="material-symbols-outlined text-[16px]">close</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleScrollToActivitiesBox}
+              className="text-indigo-700 hover:text-indigo-900 bg-white border border-indigo-200 px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer shadow-2xs hover:bg-indigo-50 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[15px]">checklist</span>
+              <span>Ver no quadro ↑</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAddedToastMessage(null)}
+              className="text-emerald-700 hover:text-emerald-900 p-1 cursor-pointer shrink-0"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
         </div>
       )}
 
       {/* ================= FASE 2: DECLARAÇÃO DE COMPREENSÕES SANITÁRIAS ================= */}
       {mainMode === 'consultar' && declaredCnaes.length > 0 && (
-        <div className="bg-white rounded-xl border border-indigo-200 p-4 sm:p-5 mb-6 shadow-xs space-y-4">
+        <div id="quadro-atividades-selecionadas" className="bg-white rounded-xl border border-indigo-200 p-4 sm:p-5 mb-6 shadow-xs space-y-4 scroll-mt-24 transition-all">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 mb-1 border-b border-slate-200">
             <div className="flex items-center gap-2.5">
               <span className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">
@@ -1572,7 +1601,7 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
 
       {/* ================= OPTION 2: SEM ATIVIDADE DEFINIDA ================= */}
       {mainMode === 'sem_atividade' && (
-        <div className="mb-6 space-y-4 animate-fadeIn">
+        <div id="quadro-sem-atividade" className="mb-6 space-y-4 animate-fadeIn scroll-mt-24 transition-all">
           {/* Explicação verde */}
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 sm:p-6 shadow-xs">
             <div className="flex items-start gap-3.5">
@@ -1651,42 +1680,45 @@ export const Step2Activity: React.FC<Step2ActivityProps> = ({
             </button>
           </div>
 
-          {/* Centro: Status do Estabelecimento */}
-          <div className="hidden sm:flex items-center justify-center gap-2 text-center sm:text-left py-0.5 min-w-0">
-            {mainMode === null ? (
-              <p className="text-xs text-slate-400 truncate">
-                Selecione uma opção para prosseguir
-              </p>
-            ) : mainMode === 'sem_atividade' ? (
-              selectedActivities.length > 0 ? (
-                <div className="flex items-center gap-2 truncate">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
-                  <span className="text-xs text-emerald-300 font-semibold truncate">
-                    Declaração de imóvel sem atividade registrada
-                  </span>
-                </div>
-              ) : (
-                <p className="text-xs text-slate-400 truncate">
-                  Aguardando registro da declaração
-                </p>
-              )
-            ) : declaredCnaes.length === 0 ? (
-              <p className="text-xs text-slate-400 truncate">
-                Pesquise e inclua ao menos uma atividade
-              </p>
-            ) : consultaCompleta ? (
-              <div className="flex items-center gap-2 truncate">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
-                <span className="text-xs text-emerald-300 font-bold truncate">
-                  {declaredCnaes.length} {declaredCnaes.length === 1 ? 'atividade pronta' : 'atividades prontas'}
+          {/* Centro: Status Legível e Interativo com Link de Rolagem para o Quadro de Atividades */}
+          <div className="flex items-center justify-center min-w-0">
+            {mainMode === 'consultar' && declaredCnaes.length > 0 ? (
+              <button
+                type="button"
+                onClick={handleScrollToActivitiesBox}
+                className="w-full sm:w-auto px-3.5 py-1.5 rounded-xl bg-indigo-950/70 hover:bg-indigo-900/90 active:bg-indigo-950 text-indigo-200 hover:text-white border border-indigo-400/50 hover:border-indigo-400 transition-all text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm group"
+                title="Clique para rolar a página até as atividades incluídas no estabelecimento"
+              >
+                <span className="material-symbols-outlined text-indigo-400 group-hover:scale-110 text-[18px] transition-transform">
+                  checklist
                 </span>
-              </div>
+                <span className="truncate">
+                  {declaredCnaes.length} {declaredCnaes.length === 1 ? 'atividade selecionada' : 'atividades selecionadas'}
+                </span>
+                <span className="text-[11px] sm:text-xs text-indigo-300 font-semibold underline underline-offset-2 shrink-0">
+                  (ver lista ↑)
+                </span>
+              </button>
+            ) : mainMode === 'sem_atividade' && selectedActivities.length > 0 ? (
+              <button
+                type="button"
+                onClick={handleScrollToActivitiesBox}
+                className="w-full sm:w-auto px-3.5 py-1.5 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/90 active:bg-emerald-950 text-emerald-200 hover:text-white border border-emerald-400/50 hover:border-emerald-400 transition-all text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm group"
+                title="Clique para ver a declaração de imóvel sem atividade"
+              >
+                <span className="material-symbols-outlined text-emerald-400 text-[18px]">
+                  check_circle
+                </span>
+                <span className="truncate">Imóvel sem atividade selecionado</span>
+                <span className="text-[11px] sm:text-xs text-emerald-300 font-semibold underline underline-offset-2 shrink-0">
+                  (ver ↑)
+                </span>
+              </button>
             ) : (
-              <div className="flex items-center gap-2 truncate">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
-                <span className="text-xs text-amber-300 font-semibold truncate">
-                  {pendingCount} {pendingCount === 1 ? 'verificação pendente' : 'verificações pendentes'}
-                </span>
+              <div className="text-xs text-slate-400 text-center py-1 truncate">
+                {mainMode === null
+                  ? 'Selecione uma opção acima para prosseguir'
+                  : 'Nenhuma atividade selecionada'}
               </div>
             )}
           </div>

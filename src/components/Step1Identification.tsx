@@ -287,6 +287,33 @@ export const Step1Identification: React.FC<Step1IdentificationProps> = ({
         </button>
       </div>
 
+      {/* Texto Explicativo da Triagem Sanitária e Conceito de LTA */}
+      <div className="bg-gradient-to-r from-indigo-50/90 via-sky-50/70 to-indigo-50/90 border border-indigo-200/90 rounded-2xl p-4 sm:p-5 mb-5 shadow-2xs">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+            <span className="material-symbols-outlined text-[20px]">assignment</span>
+          </div>
+          <div className="flex-1 text-slate-800 text-xs sm:text-sm leading-relaxed space-y-2">
+            <div>
+              <h2 className="font-bold text-indigo-950 text-sm sm:text-base">
+                Para que serve esta Triagem Sanitária?
+              </h2>
+              <p className="text-slate-700 text-xs sm:text-[13px] mt-1 leading-relaxed">
+                Esta ferramenta oficial orienta o interessado sobre a necessidade prévia de <strong>Laudo Técnico de Avaliação (LTA)</strong> para o imóvel onde serão exercidas atividades de interesse à saúde sujeitas à fiscalização da Vigilância Sanitária Municipal de Sertãozinho-SP.
+              </p>
+            </div>
+            <div className="bg-white/85 rounded-xl p-3 border border-indigo-100 text-xs text-slate-700 space-y-1.5">
+              <p>
+                <strong>O que é o Laudo Técnico de Avaliação (LTA)?</strong> É o documento formal emitido pela Vigilância Sanitária que comprova a aprovação do projeto físico da edificação (instalações, fluxos e condições sanitárias), atestando que o local está adequado antes do início das atividades, reforma ou ampliação.
+              </p>
+              <p className="text-[11.5px] text-slate-600">
+                Ao final das 3 etapas, você emitirá o <strong>Comprovante de Triagem de LTA</strong> com o enquadramento oficial conforme a {PORTARIA_CVS_LABEL}, pronto para anexar junto ao seu processo digital.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {errorMsg && (
         <div className="bg-rose-50 text-rose-900 p-3 rounded-xl mb-4 text-xs font-semibold border border-rose-200 flex items-center gap-2">
           <span className="material-symbols-outlined text-rose-600 text-[18px] shrink-0">
